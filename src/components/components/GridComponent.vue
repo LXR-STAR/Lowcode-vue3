@@ -24,25 +24,23 @@ const componentStore = useComponentStore()
 const editorStore = useEditorStore()
 const historyStore = useHistoryStore()
 
-const containerRef = ref<HTMLElement | null>(null)
+const gridRef = ref<HTMLElement | null>(null)
 const isDraggingChild = ref(false)
 const draggedChildId = ref<string | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
-const direction = computed(() => props.component.props.props?.direction || 'column')
-const justify = computed(() => props.component.props.props?.justify || 'flex-start')
-const align = computed(() => props.component.props.props?.align || 'flex-start')
-const gap = computed(() => props.component.props.props?.gap || 8)
+const columns = computed(() => props.component.props.props?.columns || 2)
+const rowGap = computed(() => props.component.props.props?.rowGap || 16)
+const colGap = computed(() => props.component.props.props?.colGap || 16)
 const padding = computed(() => props.component.props.props?.padding || 16)
 const autoExpand = computed(() => props.component.props.props?.autoExpand ?? true)
 const showBorder = computed(() => props.component.props.props?.showBorder ?? true)
 
-const containerStyle = computed(() => ({
-  display: 'flex',
-  flexDirection: direction.value as any,
-  justifyContent: justify.value,
-  alignItems: align.value,
-  gap: `${gap.value}px`,
+const gridStyle = computed(() => ({
+  display: 'grid',
+  gridTemplateColumns: `repeat(${columns.value}, 1fr)`,
+  gridRowGap: `${rowGap.value}px`,
+  gridColumnGap: `${colGap.value}px`,
   padding: `${padding.value}px`,
   height: '100%'
 }))
@@ -96,7 +94,6 @@ function handleChildDrop(e: DragEvent, targetIndex: number) {
   e.stopPropagation()
 
   const draggedId = e.dataTransfer?.getData('childId')
-  const sourceParentId = e.dataTransfer?.getData('parentId')
 
   if (draggedId && props.component.children) {
     const currentIndex = props.component.children.findIndex(c => c.id === draggedId)
@@ -122,7 +119,7 @@ function handleDragEnd() {
 }
 
 function handleContainerClick(e: MouseEvent) {
-  if (e.target === containerRef.value) {
+  if (e.target === gridRef.value) {
     componentStore.selectComponent(props.component.id)
   }
 }
@@ -200,15 +197,15 @@ onUnmounted(() => {
 
 <template>
   <div
-    ref="containerRef"
-    class="container-component"
+    ref="gridRef"
+    class="grid-component"
     :class="{
       'show-border': showBorder,
       'has-children': hasChildren,
       'is-highlighted': highlighted,
       'is-drag-over': isDragOver
     }"
-    :style="containerStyle"
+    :style="gridStyle"
     @click="handleContainerClick"
     @dragover="handleContainerDragOver"
     @dragleave="handleContainerDragLeave"
@@ -218,11 +215,11 @@ onUnmounted(() => {
       <div
         v-for="(child, index) in component.children"
         :key="child.id"
-        class="container-child"
+        class="grid-child"
         :class="{
           'is-selected': componentStore.selectedComponentIds.includes(child.id),
           'is-dragging': draggedChildId === child.id,
-          'drag-over-before': dragOverIndex === index && draggedChildId !== child.id
+          'drag-over': dragOverIndex === index && draggedChildId !== child.id
         }"
         draggable="true"
         @click="handleChildClick($event, child.id)"
@@ -237,21 +234,17 @@ onUnmounted(() => {
           @update:text="(v: string) => handleChildTextUpdate(child.id, v)"
         />
       </div>
-      <div
-        v-if="dragOverIndex === component.children!.length"
-        class="drop-indicator"
-      ></div>
     </template>
-    <div v-else class="container-hint">
+    <div v-else class="grid-hint">
       <el-icon><Grid /></el-icon>
-      <span>弹性容器</span>
-      <span class="hint-sub">{{ direction === 'row' ? '横向' : '纵向' }}排列，拖入组件进行组合</span>
+      <span>栅格布局</span>
+      <span class="hint-sub">{{ columns }}列网格，拖入组件自动排列</span>
     </div>
   </div>
 </template>
 
 <style scoped>
-.container-component {
+.grid-component {
   width: 100%;
   min-height: 80px;
   position: relative;
@@ -259,36 +252,36 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.container-component.show-border {
+.grid-component.show-border {
   border: 1px dashed #dcdfe6;
   border-radius: 4px;
 }
 
-.container-component.show-border:hover {
+.grid-component.show-border:hover {
   border-color: #409eff;
   background: rgba(64, 158, 255, 0.02);
 }
 
-.container-component.has-children {
+.grid-component.has-children {
   border-style: solid;
   border-color: #e4e7ed;
 }
 
-.container-component.is-highlighted {
+.grid-component.is-highlighted {
   border-color: #67c23a !important;
   border-width: 2px;
   background: rgba(103, 194, 58, 0.05);
 }
 
-.container-component.is-drag-over {
+.grid-component.is-drag-over {
   border-color: #409eff !important;
   border-width: 2px;
   border-style: dashed !important;
   background: rgba(64, 158, 255, 0.1) !important;
 }
 
-.container-child {
-  flex-shrink: 0;
+.grid-child {
+  min-height: 40px;
   cursor: move;
   position: relative;
   border: 2px solid transparent;
@@ -296,36 +289,24 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.container-child:hover {
+.grid-child:hover {
   border-color: #c0c4cc;
 }
 
-.container-child.is-selected {
+.grid-child.is-selected {
   border-color: #409eff;
   background: rgba(64, 158, 255, 0.05);
 }
 
-.container-child.is-dragging {
+.grid-child.is-dragging {
   opacity: 0.5;
 }
 
-.container-child.drag-over-before::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -4px;
-  height: 2px;
-  background: #409eff;
+.grid-child.drag-over {
+  border-color: #67c23a;
 }
 
-.drop-indicator {
-  height: 2px;
-  background: #409eff;
-  margin: 4px 0;
-}
-
-.container-hint {
+.grid-hint {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -339,7 +320,7 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.container-hint .el-icon {
+.grid-hint .el-icon {
   font-size: 24px;
 }
 

@@ -1,13 +1,16 @@
-export type ComponentType = 
-  | 'text' 
-  | 'image' 
-  | 'button' 
-  | 'input' 
+export type ComponentType =
+  | 'text'
+  | 'image'
+  | 'button'
+  | 'input'
   | 'textarea'
   | 'select'
   | 'checkbox'
   | 'radio'
+  | 'switch'
+  | 'datePicker'
   | 'container'
+  | 'grid'
   | 'chart'
   | 'table'
 

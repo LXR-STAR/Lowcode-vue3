@@ -23,6 +23,8 @@ const dragPreview = ref<{
   height: number
 } | null>(null)
 
+const highlightedContainerId = ref<string | null>(null)
+
 const alignmentLines = ref<{
   horizontal: number[]
   vertical: number[]
@@ -72,6 +74,9 @@ function handleDragOver(e: DragEvent) {
   const x = (e.clientX - rect.left - editorStore.canvas.offsetX) / editorStore.canvas.scale
   const y = (e.clientY - rect.top - editorStore.canvas.offsetY) / editorStore.canvas.scale
 
+  const container = componentStore.findContainerAtPosition(x, y)
+  highlightedContainerId.value = container?.id || null
+
   const size = defaultSizes[componentType] || { width: 100, height: 40 }
 
   let previewX = x - size.width / 2
@@ -95,6 +100,7 @@ function handleDragOver(e: DragEvent) {
 
 function handleDragLeave() {
   dragPreview.value = null
+  highlightedContainerId.value = null
   alignmentLines.value = { horizontal: [], vertical: [] }
 }
 
@@ -121,16 +127,23 @@ function handleDrop(e: DragEvent) {
   component.style.width = size.width
   component.style.height = size.height
 
-  if (componentType === 'container') {
+  if (componentType === 'container' || componentType === 'grid') {
     component.style.backgroundColor = '#f5f7fa'
     component.style.borderWidth = 1
   }
 
-  componentStore.addComponent(component)
+  const container = componentStore.findContainerAtPosition(x, y)
+  if (container && componentType !== 'container' && componentType !== 'grid') {
+    componentStore.addChildToContainer(container.id, component)
+  } else {
+    componentStore.addComponent(component)
+  }
+
   componentStore.selectComponent(component.id)
   historyStore.saveSnapshot()
 
   dragPreview.value = null
+  highlightedContainerId.value = null
   alignmentLines.value = { horizontal: [], vertical: [] }
 }
 
@@ -227,12 +240,22 @@ function handleMouseUp() {
     const boxWidth = maxX - minX
     const boxHeight = maxY - minY
 
-    if (boxWidth > 5 && boxHeight > 5) {
+    if (boxWidth > 2 && boxHeight > 2) {
+      const selectedIds: string[] = []
       componentStore.components.forEach(comp => {
+        if (comp.locked || comp.visible === false) return
+
         const compLeft = comp.style.x
         const compRight = comp.style.x + comp.style.width
         const compTop = comp.style.y
         const compBottom = comp.style.y + comp.style.height
+
+        const centerX = (compLeft + compRight) / 2
+        const centerY = (compTop + compBottom) / 2
+
+        const centerInBox = centerX >= minX && centerX <= maxX && centerY >= minY && centerY <= maxY
+
+        const boxInComp = minX >= compLeft && maxX <= compRight && minY >= compTop && maxY <= compBottom
 
         const intersects = !(
           compRight < minX ||
@@ -241,10 +264,16 @@ function handleMouseUp() {
           compTop > maxY
         )
 
-        if (intersects) {
-          componentStore.selectComponent(comp.id, true)
+        if (centerInBox || boxInComp || intersects) {
+          selectedIds.push(comp.id)
         }
       })
+
+      if (selectedIds.length > 0) {
+        selectedIds.forEach(id => {
+          componentStore.selectComponent(id, true)
+        })
+      }
     }
     selectionBox.value = null
   }
@@ -315,10 +344,11 @@ defineExpose({
         @click="handleCanvasClick"
       >
         <RenderComponent
-          v-for="component in componentStore.sortedComponents"
+          v-for="component in componentStore.getRootComponents()"
           :key="component.id"
           :component="component"
           :selected="componentStore.selectedComponentIds.includes(component.id)"
+          :highlighted="highlightedContainerId === component.id"
           @update:alignmentLines="setAlignmentLines"
           @clear:alignmentLines="clearAlignmentLines"
         />

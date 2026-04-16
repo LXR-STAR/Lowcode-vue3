@@ -10,29 +10,40 @@ const props = defineProps<{
 const isPreview = computed(() => props.mode === 'preview')
 const localValue = ref(props.component.props.props?.value || '')
 
-const placeholder = computed(() => props.component.props.props?.placeholder || '请输入')
+const placeholder = computed(() => props.component.props.props?.placeholder || '请选择')
 const disabled = computed(() => props.component.props.props?.disabled || false)
 const clearable = computed(() => props.component.props.props?.clearable || false)
-const showPassword = computed(() => props.component.props.props?.showPassword || false)
-const maxlength = computed(() => props.component.props.props?.maxlength || undefined)
+const multiple = computed(() => props.component.props.props?.multiple || false)
+
+const options = computed(() => props.component.props.props?.options || [
+  { label: '选项一', value: '1' },
+  { label: '选项二', value: '2' },
+  { label: '选项三', value: '3' }
+])
 </script>
 
 <template>
-  <div class="input-component">
-    <el-input
+  <div class="select-component">
+    <el-select
       v-model="localValue"
       :placeholder="placeholder"
       :disabled="disabled"
       :clearable="clearable"
-      :show-password="showPassword"
-      :maxlength="maxlength"
-      :readonly="!isPreview && !localValue"
-    />
+      :multiple="multiple"
+      style="width: 100%"
+    >
+      <el-option
+        v-for="item in options"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value"
+      />
+    </el-select>
   </div>
 </template>
 
 <style scoped>
-.input-component {
+.select-component {
   width: 100%;
   height: 100%;
   display: flex;

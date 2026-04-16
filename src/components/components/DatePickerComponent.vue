@@ -10,29 +10,28 @@ const props = defineProps<{
 const isPreview = computed(() => props.mode === 'preview')
 const localValue = ref(props.component.props.props?.value || '')
 
-const placeholder = computed(() => props.component.props.props?.placeholder || '请输入')
+const placeholder = computed(() => props.component.props.props?.placeholder || '选择日期')
 const disabled = computed(() => props.component.props.props?.disabled || false)
-const clearable = computed(() => props.component.props.props?.clearable || false)
-const showPassword = computed(() => props.component.props.props?.showPassword || false)
-const maxlength = computed(() => props.component.props.props?.maxlength || undefined)
+const type = computed(() => props.component.props.props?.type || 'date')
+const format = computed(() => props.component.props.props?.format || 'YYYY-MM-DD')
 </script>
 
 <template>
-  <div class="input-component">
-    <el-input
+  <div class="date-picker-component">
+    <el-date-picker
       v-model="localValue"
+      :type="type"
       :placeholder="placeholder"
       :disabled="disabled"
-      :clearable="clearable"
-      :show-password="showPassword"
-      :maxlength="maxlength"
-      :readonly="!isPreview && !localValue"
+      :format="format"
+      :value-format="format"
+      style="width: 100%"
     />
   </div>
 </template>
 
 <style scoped>
-.input-component {
+.date-picker-component {
   width: 100%;
   height: 100%;
   display: flex;

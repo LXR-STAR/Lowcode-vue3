@@ -47,6 +47,7 @@ export const useEditorStore = defineStore('editor', () => {
   const isResizing = ref(false)
   const previewMode = ref(false)
   const currentPreset = ref<string>('桌面 1920')
+  const draggingComponentType = ref<string | null>(null)
 
   const zoomLevel = computed(() => Math.round(canvas.value.scale * 100))
 
@@ -153,6 +154,7 @@ export const useEditorStore = defineStore('editor', () => {
     isResizing,
     previewMode,
     currentPreset,
+    draggingComponentType,
     zoomLevel,
     setScale,
     zoomIn,

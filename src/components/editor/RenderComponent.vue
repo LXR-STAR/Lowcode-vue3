@@ -6,13 +6,22 @@ import TextComponent from '../components/TextComponent.vue'
 import ImageComponent from '../components/ImageComponent.vue'
 import ButtonComponent from '../components/ButtonComponent.vue'
 import InputComponent from '../components/InputComponent.vue'
+import TextareaComponent from '../components/TextareaComponent.vue'
+import SelectComponent from '../components/SelectComponent.vue'
+import CheckboxComponent from '../components/CheckboxComponent.vue'
+import RadioComponent from '../components/RadioComponent.vue'
+import SwitchComponent from '../components/SwitchComponent.vue'
+import DatePickerComponent from '../components/DatePickerComponent.vue'
 import ChartComponent from '../components/ChartComponent.vue'
 import ContainerComponent from '../components/ContainerComponent.vue'
+import GridComponent from '../components/GridComponent.vue'
+import TableComponent from '../components/TableComponent.vue'
 import ContextMenu from './ContextMenu.vue'
 
 const props = defineProps<{
   component: EditorComponent
   selected: boolean
+  highlighted?: boolean
 }>()
 
 const componentStore = useComponentStore()
@@ -34,25 +43,31 @@ const emit = defineEmits<{
   (e: 'clear:alignmentLines'): void
 }>()
 
-const componentStyle = computed(() => ({
-  position: 'absolute' as const,
-  left: `${props.component.style.x}px`,
-  top: `${props.component.style.y}px`,
-  width: `${props.component.style.width}px`,
-  height: `${props.component.style.height}px`,
-  transform: `rotate(${props.component.style.rotate}deg)`,
-  opacity: props.component.style.opacity,
-  borderWidth: `${props.component.style.borderWidth}px`,
-  borderColor: props.component.style.borderColor,
-  borderStyle: props.component.style.borderStyle as any,
-  borderRadius: `${props.component.style.borderRadius}px`,
-  backgroundColor: props.component.style.backgroundColor,
-  boxShadow: props.component.style.boxShadow,
-  zIndex: props.component.style.zIndex,
-  cursor: isDragging.value ? 'move' : 'default',
-  display: props.component.visible ? 'block' : 'none',
-  pointerEvents: props.component.locked ? 'none' : 'auto'
-}))
+const componentStyle = computed(() => {
+  const isContainer = props.component.type === 'container' || props.component.type === 'grid'
+  const autoExpand = isContainer && props.component.props.props?.autoExpand !== false
+
+  return {
+    position: 'absolute' as const,
+    left: `${props.component.style.x}px`,
+    top: `${props.component.style.y}px`,
+    width: `${props.component.style.width}px`,
+    height: autoExpand ? 'auto' : `${props.component.style.height}px`,
+    minHeight: autoExpand ? `${props.component.style.height}px` : undefined,
+    transform: `rotate(${props.component.style.rotate}deg)`,
+    opacity: props.component.style.opacity,
+    borderWidth: `${props.component.style.borderWidth}px`,
+    borderColor: props.component.style.borderColor,
+    borderStyle: props.component.style.borderStyle as any,
+    borderRadius: `${props.component.style.borderRadius}px`,
+    backgroundColor: props.component.style.backgroundColor,
+    boxShadow: props.component.style.boxShadow,
+    zIndex: props.component.style.zIndex,
+    cursor: isDragging.value ? 'move' : 'default',
+    display: props.component.visible ? 'block' : 'none',
+    pointerEvents: props.component.locked ? 'none' : 'auto'
+  }
+})
 
 const resizeHandles = [
   { type: 'nw', cursor: 'nwse-resize' },
@@ -70,12 +85,16 @@ const componentMap: Record<string, any> = {
   image: ImageComponent,
   button: ButtonComponent,
   input: InputComponent,
-  textarea: InputComponent,
-  select: InputComponent,
-  checkbox: InputComponent,
-  radio: InputComponent,
+  textarea: TextareaComponent,
+  select: SelectComponent,
+  checkbox: CheckboxComponent,
+  radio: RadioComponent,
+  switch: SwitchComponent,
+  datePicker: DatePickerComponent,
   chart: ChartComponent,
-  container: ContainerComponent
+  container: ContainerComponent,
+  grid: GridComponent,
+  table: TableComponent
 }
 
 const currentComponent = computed(() => componentMap[props.component.type] || TextComponent)
@@ -273,6 +292,17 @@ function handleContextMenu(e: MouseEvent) {
   contextMenuRef.value?.show(e.clientX, e.clientY)
 }
 
+function handleTextUpdate(value: string) {
+  componentStore.updateComponentProps(props.component.id, { text: value })
+  historyStore.saveSnapshot()
+}
+
+function handleImageUpdate(value: { src: string; alt?: string }) {
+  const imageStyle = { ...props.component.props.imageStyle, ...value }
+  componentStore.updateComponentProps(props.component.id, { imageStyle })
+  historyStore.saveSnapshot()
+}
+
 onMounted(() => {
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mouseup', handleMouseUp)
@@ -294,26 +324,13 @@ onUnmounted(() => {
     @contextmenu="handleContextMenu"
   >
     <div class="component-content">
-      <component :is="currentComponent" :component="component" />
-      <template v-if="component.children && component.children.length > 0">
-        <div
-          v-for="child in component.children"
-          :key="child.id"
-          class="group-child"
-          :style="{
-            position: 'absolute',
-            left: `${child.style.x}px`,
-            top: `${child.style.y}px`,
-            width: `${child.style.width}px`,
-            height: `${child.style.height}px`,
-            transform: `rotate(${child.style.rotate || 0}deg)`,
-            opacity: child.style.opacity ?? 1,
-            zIndex: child.style.zIndex
-          }"
-        >
-          <component :is="componentMap[child.type] || TextComponent" :component="child" />
-        </div>
-      </template>
+      <component
+        :is="currentComponent"
+        :component="component"
+        :highlighted="highlighted"
+        @update="handleTextUpdate"
+        @update:image="handleImageUpdate"
+      />
     </div>
 
     <template v-if="selected && !editorStore.previewMode">
@@ -372,11 +389,11 @@ onUnmounted(() => {
     outline-style: dashed;
     outline-color: #67c23a;
   }
-  
+
   &.is-group {
     outline-style: dashed;
     outline-color: #e6a23c;
-    
+
     &.selected {
       outline-color: #e6a23c;
     }

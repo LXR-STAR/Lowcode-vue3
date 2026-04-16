@@ -34,7 +34,10 @@ export const useComponentStore = defineStore('component', () => {
       select: '下拉选择',
       checkbox: '复选框',
       radio: '单选框',
-      container: '容器组件',
+      switch: '开关',
+      datePicker: '日期选择',
+      container: '弹性容器',
+      grid: '栅格布局',
       chart: '图表组件',
       table: '表格组件'
     }
@@ -119,8 +122,33 @@ export const useComponentStore = defineStore('component', () => {
         text: '单选框',
         props: { checked: false }
       },
+      switch: {
+        props: {
+          value: false,
+          disabled: false,
+          activeText: '',
+          inactiveText: ''
+        }
+      },
+      datePicker: {
+        props: {
+          placeholder: '选择日期',
+          dateType: 'date',
+          disabled: false
+        }
+      },
       container: {
         props: {}
+      },
+      grid: {
+        props: {
+          columns: 2,
+          rowGap: 16,
+          colGap: 16,
+          padding: 16,
+          autoExpand: true,
+          showBorder: true
+        }
       },
       chart: {
         chartStyle: {
@@ -129,10 +157,11 @@ export const useComponentStore = defineStore('component', () => {
         }
       },
       table: {
-        props: {
-          columns: [],
-          data: []
-        }
+        columns: [],
+        data: [],
+        stripe: true,
+        border: true,
+        size: 'default'
       }
     }
 
@@ -144,19 +173,27 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function removeComponent(id: string) {
-    const index = components.value.findIndex(c => c.id === id)
-    if (index > -1) {
-      components.value.splice(index, 1)
+    for (let i = 0; i < components.value.length; i++) {
+      const comp = components.value[i]
+      if (comp.id === id) {
+        components.value.splice(i, 1)
+        selectedComponentIds.value = selectedComponentIds.value.filter(cid => cid !== id)
+        return
+      }
+      if (comp.children) {
+        const childIndex = comp.children.findIndex(c => c.id === id)
+        if (childIndex > -1) {
+          comp.children.splice(childIndex, 1)
+          selectedComponentIds.value = selectedComponentIds.value.filter(cid => cid !== id)
+          return
+        }
+      }
     }
-    selectedComponentIds.value = selectedComponentIds.value.filter(cid => cid !== id)
   }
 
   function removeSelectedComponents() {
     selectedComponentIds.value.forEach(id => {
-      const index = components.value.findIndex(c => c.id === id)
-      if (index > -1) {
-        components.value.splice(index, 1)
-      }
+      removeComponent(id)
     })
     selectedComponentIds.value = []
   }
@@ -169,16 +206,34 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function updateComponentStyle(id: string, styleUpdates: Partial<ComponentStyle>) {
-    const component = components.value.find(c => c.id === id)
-    if (component) {
-      component.style = { ...component.style, ...styleUpdates }
+    for (const comp of components.value) {
+      if (comp.id === id) {
+        comp.style = { ...comp.style, ...styleUpdates }
+        return
+      }
+      if (comp.children) {
+        const child = comp.children.find(c => c.id === id)
+        if (child) {
+          child.style = { ...child.style, ...styleUpdates }
+          return
+        }
+      }
     }
   }
 
   function updateComponentProps(id: string, propsUpdates: Partial<ComponentProps>) {
-    const component = components.value.find(c => c.id === id)
-    if (component) {
-      component.props = { ...component.props, ...propsUpdates }
+    for (const comp of components.value) {
+      if (comp.id === id) {
+        comp.props = { ...comp.props, ...propsUpdates }
+        return
+      }
+      if (comp.children) {
+        const child = comp.children.find(c => c.id === id)
+        if (child) {
+          child.props = { ...child.props, ...propsUpdates }
+          return
+        }
+      }
     }
   }
 
@@ -383,6 +438,89 @@ export const useComponentStore = defineStore('component', () => {
     return !!(component && component.children && component.children.length > 0)
   }
 
+  function getRootComponents(): EditorComponent[] {
+    return components.value.filter(c => !c.parentId)
+  }
+
+  function findContainerAtPosition(x: number, y: number, excludeId?: string): EditorComponent | null {
+    const containers = components.value.filter(c =>
+      (c.type === 'container' || c.type === 'grid') &&
+      c.id !== excludeId &&
+      c.visible !== false
+    )
+
+    for (const container of containers) {
+      const { x: cx, y: cy, width, height } = container.style
+      if (x >= cx && x <= cx + width && y >= cy && y <= cy + height) {
+        return container
+      }
+    }
+    return null
+  }
+
+  function addChildToContainer(containerId: string, child: EditorComponent) {
+    const container = components.value.find(c => c.id === containerId)
+    if (!container) return
+
+    if (!container.children) {
+      container.children = []
+    }
+
+    child.parentId = containerId
+    child.style.x = child.style.x - container.style.x
+    child.style.y = child.style.y - container.style.y
+
+    container.children.push(child)
+
+    const childIndex = components.value.findIndex(c => c.id === child.id)
+    if (childIndex > -1) {
+      components.value.splice(childIndex, 1)
+    }
+  }
+
+  function removeChildFromContainer(containerId: string, childId: string, targetX?: number, targetY?: number) {
+    const container = components.value.find(c => c.id === containerId)
+    if (!container || !container.children) return
+
+    const childIndex = container.children.findIndex(c => c.id === childId)
+    if (childIndex === -1) return
+
+    const child = container.children[childIndex]
+    child.parentId = undefined
+
+    if (targetX !== undefined && targetY !== undefined) {
+      child.style.x = targetX
+      child.style.y = targetY
+    } else {
+      child.style.x = child.style.x + container.style.x
+      child.style.y = child.style.y + container.style.y
+    }
+
+    container.children.splice(childIndex, 1)
+    components.value.push(child)
+  }
+
+  function getComponentById(id: string): EditorComponent | undefined {
+    for (const comp of components.value) {
+      if (comp.id === id) return comp
+      if (comp.children) {
+        const found = comp.children.find(c => c.id === id)
+        if (found) return found
+      }
+    }
+    return undefined
+  }
+
+  function updateChildInContainer(containerId: string, childId: string, updates: Partial<EditorComponent>) {
+    const container = components.value.find(c => c.id === containerId)
+    if (!container || !container.children) return
+
+    const child = container.children.find(c => c.id === childId)
+    if (child) {
+      Object.assign(child, updates)
+    }
+  }
+
   function setComponents(newComponents: EditorComponent[]) {
     components.value = newComponents
     selectedComponentIds.value = []
@@ -417,6 +555,12 @@ export const useComponentStore = defineStore('component', () => {
     groupComponents,
     ungroupComponent,
     isGroup,
+    getRootComponents,
+    findContainerAtPosition,
+    addChildToContainer,
+    removeChildFromContainer,
+    getComponentById,
+    updateChildInContainer,
     setComponents
   }
 })

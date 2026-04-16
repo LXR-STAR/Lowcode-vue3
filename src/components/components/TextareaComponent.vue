@@ -12,30 +12,28 @@ const localValue = ref(props.component.props.props?.value || '')
 
 const placeholder = computed(() => props.component.props.props?.placeholder || '请输入')
 const disabled = computed(() => props.component.props.props?.disabled || false)
-const clearable = computed(() => props.component.props.props?.clearable || false)
-const showPassword = computed(() => props.component.props.props?.showPassword || false)
 const maxlength = computed(() => props.component.props.props?.maxlength || undefined)
+const rows = computed(() => props.component.props.props?.rows || 3)
 </script>
 
 <template>
-  <div class="input-component">
+  <div class="textarea-component">
     <el-input
       v-model="localValue"
+      type="textarea"
       :placeholder="placeholder"
       :disabled="disabled"
-      :clearable="clearable"
-      :show-password="showPassword"
       :maxlength="maxlength"
+      :rows="rows"
       :readonly="!isPreview && !localValue"
     />
   </div>
 </template>
 
 <style scoped>
-.input-component {
+.textarea-component {
   width: 100%;
   height: 100%;
   display: flex;
-  align-items: center;
 }
 </style>

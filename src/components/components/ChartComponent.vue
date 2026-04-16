@@ -13,12 +13,14 @@ let chartInstance: echarts.ECharts | null = null
 const chartType = computed(() => props.component.props.chartStyle?.chartType || 'bar')
 
 const defaultOptions = computed(() => {
+  const customOption = props.component.props.chartStyle?.option || {}
+
   const baseOption: any = {
     tooltip: {
       trigger: 'axis'
     },
     legend: {
-      data: ['示例数据']
+      data: customOption?.series?.[0]?.name ? [customOption.series[0].name] : ['数据']
     },
     grid: {
       left: '3%',
@@ -28,33 +30,35 @@ const defaultOptions = computed(() => {
     },
     xAxis: {
       type: 'category',
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      data: customOption?.xAxis?.data || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     },
     yAxis: {
       type: 'value'
     },
     series: [
       {
-        name: '示例数据',
+        name: customOption?.series?.[0]?.name || '数据',
         type: chartType.value,
-        data: [120, 200, 150, 80, 70, 110, 130]
+        data: customOption?.series?.[0]?.data || [120, 200, 150, 80, 70, 110, 130]
       }
     ]
   }
 
+  if (customOption?.title?.text) {
+    baseOption.title = { text: customOption.title.text, left: 'center' }
+  }
+
   if (chartType.value === 'pie') {
     baseOption.tooltip = { trigger: 'item' }
+    const pieData = (customOption?.series?.[0]?.data || [120, 200, 150, 80, 70, 110, 130]).map((value: number, index: number) => ({
+      value,
+      name: (customOption?.xAxis?.data || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'])[index] || `数据${index + 1}`
+    }))
     baseOption.series = [{
-      name: '示例数据',
+      name: customOption?.series?.[0]?.name || '数据',
       type: 'pie',
       radius: '50%',
-      data: [
-        { value: 1048, name: 'Search Engine' },
-        { value: 735, name: 'Direct' },
-        { value: 580, name: 'Email' },
-        { value: 484, name: 'Union Ads' },
-        { value: 300, name: 'Video Ads' }
-      ]
+      data: pieData
     }]
     delete baseOption.xAxis
     delete baseOption.yAxis
@@ -66,10 +70,11 @@ const defaultOptions = computed(() => {
 
 function initChart() {
   if (!chartRef.value) return
-  
-  chartInstance = echarts.init(chartRef.value)
-  const customOption = props.component.props.chartStyle?.option || {}
-  chartInstance.setOption({ ...defaultOptions.value, ...customOption })
+
+  if (!chartInstance) {
+    chartInstance = echarts.init(chartRef.value)
+  }
+  chartInstance.setOption(defaultOptions.value, true)
 }
 
 function resizeChart() {
@@ -100,7 +105,7 @@ watch(() => props.component.style, () => {
 .chart-component {
   width: 100%;
   height: 100%;
-  
+
   .chart-container {
     width: 100%;
     height: 100%;

@@ -6,8 +6,16 @@ import TextComponent from '@/components/components/TextComponent.vue'
 import ImageComponent from '@/components/components/ImageComponent.vue'
 import ButtonComponent from '@/components/components/ButtonComponent.vue'
 import InputComponent from '@/components/components/InputComponent.vue'
+import TextareaComponent from '@/components/components/TextareaComponent.vue'
+import SelectComponent from '@/components/components/SelectComponent.vue'
+import CheckboxComponent from '@/components/components/CheckboxComponent.vue'
+import RadioComponent from '@/components/components/RadioComponent.vue'
+import SwitchComponent from '@/components/components/SwitchComponent.vue'
+import DatePickerComponent from '@/components/components/DatePickerComponent.vue'
 import ChartComponent from '@/components/components/ChartComponent.vue'
 import ContainerComponent from '@/components/components/ContainerComponent.vue'
+import GridComponent from '@/components/components/GridComponent.vue'
+import TableComponent from '@/components/components/TableComponent.vue'
 
 const router = useRouter()
 const componentStore = useComponentStore()
@@ -20,16 +28,20 @@ const componentMap: Record<string, any> = {
   image: ImageComponent,
   button: ButtonComponent,
   input: InputComponent,
-  textarea: InputComponent,
-  select: InputComponent,
-  checkbox: InputComponent,
-  radio: InputComponent,
+  textarea: TextareaComponent,
+  select: SelectComponent,
+  checkbox: CheckboxComponent,
+  radio: RadioComponent,
+  switch: SwitchComponent,
+  datePicker: DatePickerComponent,
   chart: ChartComponent,
-  container: ContainerComponent
+  container: ContainerComponent,
+  grid: GridComponent,
+  table: TableComponent
 }
 
 const sortedComponents = computed(() =>
-  [...componentStore.components].sort((a, b) => a.style.zIndex - b.style.zIndex)
+  [...componentStore.getRootComponents()].sort((a, b) => a.style.zIndex - b.style.zIndex)
 )
 
 const canvasStyle = computed(() => ({
@@ -42,13 +54,13 @@ const canvasStyle = computed(() => ({
 function calculateScale() {
   const canvasWidth = editorStore.canvas.width
   const canvasHeight = editorStore.canvas.height
-  
+
   const containerWidth = window.innerWidth - 80
   const containerHeight = window.innerHeight - 140
-  
+
   const scaleX = containerWidth / canvasWidth
   const scaleY = containerHeight / canvasHeight
-  
+
   previewScale.value = Math.min(scaleX, scaleY, 1)
 }
 
@@ -79,12 +91,16 @@ function handleResize() {
 }
 
 function renderComponent(component: any) {
+  const isContainer = component.type === 'container' || component.type === 'grid'
+  const autoExpand = isContainer && component.props?.props?.autoExpand !== false
+
   return {
     position: 'absolute' as const,
     left: `${component.style.x}px`,
     top: `${component.style.y}px`,
     width: `${component.style.width}px`,
-    height: `${component.style.height}px`,
+    height: autoExpand ? 'auto' : `${component.style.height}px`,
+    minHeight: autoExpand ? `${component.style.height}px` : undefined,
     transform: `rotate(${component.style.rotate || 0}deg)`,
     opacity: component.style.opacity ?? 1,
     borderWidth: `${component.style.borderWidth || 0}px`,
@@ -147,20 +163,8 @@ onUnmounted(() => {
               <component
                 :is="componentMap[component.type] || TextComponent"
                 :component="component"
+                mode="preview"
               />
-              <template v-if="component.children && component.children.length > 0">
-                <div
-                  v-for="child in component.children"
-                  :key="child.id"
-                  class="preview-component"
-                  :style="renderComponent(child)"
-                >
-                  <component
-                    :is="componentMap[child.type] || TextComponent"
-                    :component="child"
-                  />
-                </div>
-              </template>
             </div>
           </template>
         </div>

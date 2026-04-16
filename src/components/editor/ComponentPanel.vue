@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useComponentStore } from '@/stores'
+import { useComponentStore, useEditorStore } from '@/stores'
 import type { ComponentType } from '@/types'
 
 const componentStore = useComponentStore()
+const editorStore = useEditorStore()
 
 const activeGroups = ref(['基础组件', '表单组件', '高级组件'])
 
@@ -23,13 +24,16 @@ const componentGroups = [
       { type: 'textarea' as ComponentType, name: '多行文本', icon: 'Tickets' },
       { type: 'select' as ComponentType, name: '下拉选择', icon: 'ArrowDown' },
       { type: 'checkbox' as ComponentType, name: '复选框', icon: 'Select' },
-      { type: 'radio' as ComponentType, name: '单选框', icon: 'Check' }
+      { type: 'radio' as ComponentType, name: '单选框', icon: 'Check' },
+      { type: 'switch' as ComponentType, name: '开关', icon: 'Open' },
+      { type: 'datePicker' as ComponentType, name: '日期选择', icon: 'Calendar' }
     ]
   },
   {
     name: '高级组件',
     items: [
-      { type: 'container' as ComponentType, name: '容器', icon: 'Grid' },
+      { type: 'container' as ComponentType, name: '弹性容器', icon: 'Grid' },
+      { type: 'grid' as ComponentType, name: '栅格布局', icon: 'Menu' },
       { type: 'chart' as ComponentType, name: '图表', icon: 'DataLine' },
       { type: 'table' as ComponentType, name: '表格', icon: 'List' }
     ]
@@ -40,6 +44,7 @@ const draggedComponent = ref<ComponentType | null>(null)
 
 function handleDragStart(e: DragEvent, type: ComponentType) {
   draggedComponent.value = type
+  editorStore.draggingComponentType = type
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'copy'
     e.dataTransfer.setData('componentType', type)
@@ -48,6 +53,7 @@ function handleDragStart(e: DragEvent, type: ComponentType) {
 
 function handleDragEnd() {
   draggedComponent.value = null
+  editorStore.draggingComponentType = null
 }
 </script>
 
