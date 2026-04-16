@@ -1,0 +1,254 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useComponentStore, useEditorStore } from '@/stores'
+import TextComponent from '@/components/components/TextComponent.vue'
+import ImageComponent from '@/components/components/ImageComponent.vue'
+import ButtonComponent from '@/components/components/ButtonComponent.vue'
+import InputComponent from '@/components/components/InputComponent.vue'
+import ChartComponent from '@/components/components/ChartComponent.vue'
+import ContainerComponent from '@/components/components/ContainerComponent.vue'
+
+const router = useRouter()
+const componentStore = useComponentStore()
+const editorStore = useEditorStore()
+
+const previewScale = ref(1)
+
+const componentMap: Record<string, any> = {
+  text: TextComponent,
+  image: ImageComponent,
+  button: ButtonComponent,
+  input: InputComponent,
+  textarea: InputComponent,
+  select: InputComponent,
+  checkbox: InputComponent,
+  radio: InputComponent,
+  chart: ChartComponent,
+  container: ContainerComponent
+}
+
+const sortedComponents = computed(() =>
+  [...componentStore.components].sort((a, b) => a.style.zIndex - b.style.zIndex)
+)
+
+const canvasStyle = computed(() => ({
+  width: `${editorStore.canvas.width}px`,
+  height: `${editorStore.canvas.height}px`,
+  transform: `scale(${previewScale.value})`,
+  transformOrigin: 'center center'
+}))
+
+function calculateScale() {
+  const canvasWidth = editorStore.canvas.width
+  const canvasHeight = editorStore.canvas.height
+  
+  const containerWidth = window.innerWidth - 80
+  const containerHeight = window.innerHeight - 140
+  
+  const scaleX = containerWidth / canvasWidth
+  const scaleY = containerHeight / canvasHeight
+  
+  previewScale.value = Math.min(scaleX, scaleY, 1)
+}
+
+function handleZoomIn() {
+  previewScale.value = Math.min(previewScale.value + 0.1, 2)
+}
+
+function handleZoomOut() {
+  previewScale.value = Math.max(previewScale.value - 0.1, 0.1)
+}
+
+function handleResetZoom() {
+  calculateScale()
+}
+
+function handleBack() {
+  router.push('/')
+}
+
+function handleKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    handleBack()
+  }
+}
+
+function handleResize() {
+  calculateScale()
+}
+
+function renderComponent(component: any) {
+  return {
+    position: 'absolute' as const,
+    left: `${component.style.x}px`,
+    top: `${component.style.y}px`,
+    width: `${component.style.width}px`,
+    height: `${component.style.height}px`,
+    transform: `rotate(${component.style.rotate || 0}deg)`,
+    opacity: component.style.opacity ?? 1,
+    borderWidth: `${component.style.borderWidth || 0}px`,
+    borderColor: component.style.borderColor || 'transparent',
+    borderStyle: component.style.borderStyle || 'solid',
+    borderRadius: `${component.style.borderRadius || 0}px`,
+    backgroundColor: component.style.backgroundColor || 'transparent',
+    boxShadow: component.style.boxShadow || 'none',
+    zIndex: component.style.zIndex,
+    display: component.visible !== false ? 'block' : 'none'
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('resize', handleResize)
+  calculateScale()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('resize', handleResize)
+})
+</script>
+
+<template>
+  <div class="preview-container">
+    <div class="preview-header">
+      <div class="header-left">
+        <el-button @click="handleBack" circle>
+          <el-icon><Back /></el-icon>
+        </el-button>
+        <h2>页面预览</h2>
+      </div>
+
+      <div class="header-right">
+        <el-button-group>
+          <el-button size="small" @click="handleZoomOut">
+            <el-icon><ZoomOut /></el-icon>
+          </el-button>
+          <el-button size="small" disabled>
+            {{ Math.round(previewScale * 100) }}%
+          </el-button>
+          <el-button size="small" @click="handleZoomIn">
+            <el-icon><ZoomIn /></el-icon>
+          </el-button>
+        </el-button-group>
+        <el-button size="small" @click="handleResetZoom">自适应</el-button>
+      </div>
+    </div>
+
+    <div class="preview-body">
+      <div class="preview-canvas-wrapper">
+        <div class="preview-canvas" :style="canvasStyle">
+          <template v-for="component in sortedComponents" :key="component.id">
+            <div
+              class="preview-component"
+              :style="renderComponent(component)"
+            >
+              <component
+                :is="componentMap[component.type] || TextComponent"
+                :component="component"
+              />
+              <template v-if="component.children && component.children.length > 0">
+                <div
+                  v-for="child in component.children"
+                  :key="child.id"
+                  class="preview-component"
+                  :style="renderComponent(child)"
+                >
+                  <component
+                    :is="componentMap[child.type] || TextComponent"
+                    :component="child"
+                  />
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-footer">
+      <span>画布: {{ editorStore.canvas.width }} × {{ editorStore.canvas.height }}</span>
+      <span>{{ componentStore.components.length }} 个组件</span>
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.preview-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #1a1a1a;
+}
+
+.preview-header {
+  height: 56px;
+  background: #2d2d2d;
+  border-bottom: 1px solid #3d3d3d;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      color: #fff;
+      font-weight: 500;
+    }
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+.preview-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 20px;
+  min-height: 0;
+}
+
+.preview-canvas-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-canvas {
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.preview-component {
+  overflow: hidden;
+}
+
+.preview-footer {
+  height: 32px;
+  background: #2d2d2d;
+  border-top: 1px solid #3d3d3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  font-size: 12px;
+  color: #999;
+  flex-shrink: 0;
+}
+</style>
