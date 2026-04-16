@@ -383,6 +383,11 @@ export const useComponentStore = defineStore('component', () => {
     return !!(component && component.children && component.children.length > 0)
   }
 
+  function setComponents(newComponents: EditorComponent[]) {
+    components.value = newComponents
+    selectedComponentIds.value = []
+  }
+
   return {
     components,
     selectedComponentIds,
@@ -411,6 +416,7 @@ export const useComponentStore = defineStore('component', () => {
     setComponentRotation,
     groupComponents,
     ungroupComponent,
-    isGroup
+    isGroup,
+    setComponents
   }
 })

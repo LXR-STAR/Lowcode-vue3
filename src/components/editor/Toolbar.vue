@@ -1,12 +1,21 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useComponentStore, useEditorStore, useHistoryStore } from '@/stores'
+import { exportToSchema, downloadSchema, loadSchemaFile, importFromSchema } from '@/utils/schema'
+import { generateCode, downloadCode, type CodeFormat } from '@/utils/codeGenerator'
 
 const router = useRouter()
 const componentStore = useComponentStore()
 const editorStore = useEditorStore()
 const historyStore = useHistoryStore()
+
+const showCodeDialog = ref(false)
+const codeFormat = ref<CodeFormat>('html')
+const generatedCode = ref('')
+const codeDialogVisible = ref(false)
+const schemaDialogVisible = ref(false)
+const schemaJson = ref('')
 
 function handleUndo() {
   historyStore.undo()
@@ -69,33 +78,58 @@ function handlePreview() {
   router.push('/preview')
 }
 
-function handleExport() {
-  const json = componentStore.exportToJSON()
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `page_${Date.now()}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+function handleExportSchema() {
+  const schema = exportToSchema()
+  schemaJson.value = JSON.stringify(schema, null, 2)
+  schemaDialogVisible.value = true
 }
 
-function handleImport() {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.json'
-  input.onchange = (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const content = event.target?.result as string
-      componentStore.importFromJSON(content)
-      historyStore.saveSnapshot()
-    }
-    reader.readAsText(file)
+function handleCopySchema() {
+  navigator.clipboard.writeText(schemaJson.value)
+}
+
+function handleDownloadSchema() {
+  const schema = JSON.parse(schemaJson.value)
+  downloadSchema(schema)
+}
+
+async function handleImportSchema() {
+  try {
+    const schema = await loadSchemaFile()
+    importFromSchema(schema)
+    historyStore.saveSnapshot()
+  } catch (error) {
+    console.error('Failed to import schema:', error)
   }
-  input.click()
+}
+
+function handleExportCode(format: CodeFormat) {
+  const schema = exportToSchema()
+  const code = generateCode(schema, {
+    format,
+    includeStyles: true,
+    inlineStyles: true
+  })
+  downloadCode(code, `page_${Date.now()}`, format)
+}
+
+function handleShowCodeDialog(format: CodeFormat) {
+  codeFormat.value = format
+  const schema = exportToSchema()
+  generatedCode.value = generateCode(schema, {
+    format,
+    includeStyles: true,
+    inlineStyles: true
+  })
+  codeDialogVisible.value = true
+}
+
+function handleCopyCode() {
+  navigator.clipboard.writeText(generatedCode.value)
+}
+
+function handleDownloadCode() {
+  downloadCode(generatedCode.value, `page_${Date.now()}`, codeFormat.value)
 }
 
 function handleClearCanvas() {
@@ -244,22 +278,84 @@ onUnmounted(() => {
           <el-icon><DeleteFilled /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="导入JSON" placement="bottom">
-        <el-button @click="handleImport" circle>
+      <el-tooltip content="导入 Schema" placement="bottom">
+        <el-button @click="handleImportSchema" circle>
           <el-icon><Upload /></el-icon>
         </el-button>
       </el-tooltip>
-      <el-tooltip content="导出JSON" placement="bottom">
-        <el-button @click="handleExport" circle>
+      <el-dropdown trigger="click">
+        <el-button circle>
           <el-icon><Download /></el-icon>
         </el-button>
-      </el-tooltip>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="handleExportSchema">
+              <el-icon><Document /></el-icon>
+              导出 Schema JSON
+            </el-dropdown-item>
+            <el-dropdown-item divided @click="handleShowCodeDialog('html')">
+              <el-icon><Document /></el-icon>
+              导出 HTML 代码
+            </el-dropdown-item>
+            <el-dropdown-item @click="handleShowCodeDialog('vue')">
+              <el-icon><Document /></el-icon>
+              导出 Vue 组件
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-tooltip content="全屏预览" placement="bottom">
         <el-button type="primary" @click="handlePreview" circle>
           <el-icon><View /></el-icon>
         </el-button>
       </el-tooltip>
     </div>
+
+    <el-dialog
+      v-model="codeDialogVisible"
+      :title="`导出 ${codeFormat.toUpperCase()} 代码`"
+      width="800px"
+    >
+      <div class="code-preview">
+        <div class="code-header">
+          <span>生成的代码</span>
+          <el-button-group size="small">
+            <el-button @click="handleCopyCode">
+              <el-icon><CopyDocument /></el-icon>
+              复制
+            </el-button>
+            <el-button type="primary" @click="handleDownloadCode">
+              <el-icon><Download /></el-icon>
+              下载
+            </el-button>
+          </el-button-group>
+        </div>
+        <pre class="code-content"><code>{{ generatedCode }}</code></pre>
+      </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="schemaDialogVisible"
+      title="导出 Schema JSON"
+      width="800px"
+    >
+      <div class="code-preview">
+        <div class="code-header">
+          <span>Schema JSON</span>
+          <el-button-group size="small">
+            <el-button @click="handleCopySchema">
+              <el-icon><CopyDocument /></el-icon>
+              复制
+            </el-button>
+            <el-button type="primary" @click="handleDownloadSchema">
+              <el-icon><Download /></el-icon>
+              下载
+            </el-button>
+          </el-button-group>
+        </div>
+        <pre class="code-content"><code>{{ schemaJson }}</code></pre>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -303,6 +399,34 @@ onUnmounted(() => {
   :deep(.el-divider--vertical) {
     height: 24px;
     margin: 0 8px;
+  }
+}
+
+.code-preview {
+  .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .code-content {
+    background: #f5f7fa;
+    border: 1px solid #e4e7ed;
+    border-radius: 4px;
+    padding: 16px;
+    max-height: 500px;
+    overflow: auto;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+
+    code {
+      color: #303133;
+    }
   }
 }
 </style>
