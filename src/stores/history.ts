@@ -1,37 +1,54 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed } from 'vue'
 import { useComponentStore } from './component'
 import type { EditorComponent } from '@/types'
 import { DEFAULT_CONFIG } from '@/types'
 
 export const useHistoryStore = defineStore('history', () => {
-  const snapshots = ref<EditorComponent[][]>([])
+  const snapshots = shallowRef<EditorComponent[][]>([])
   const currentIndex = ref(-1)
   const maxHistory = DEFAULT_CONFIG.maxHistory
+  let saveTimer: ReturnType<typeof setTimeout> | null = null
 
   const canUndo = computed(() => currentIndex.value > 0)
   const canRedo = computed(() => currentIndex.value < snapshots.value.length - 1)
 
-  function saveSnapshot() {
+  function saveSnapshot(debounce: boolean = true) {
+    if (debounce) {
+      if (saveTimer) {
+        clearTimeout(saveTimer)
+      }
+      saveTimer = setTimeout(() => {
+        performSave()
+        saveTimer = null
+      }, 300)
+    } else {
+      performSave()
+    }
+  }
+
+  function performSave() {
     const componentStore = useComponentStore()
     const snapshot = componentStore.getComponentsSnapshot()
-    
-    if (currentIndex.value < snapshots.value.length - 1) {
-      snapshots.value = snapshots.value.slice(0, currentIndex.value + 1)
-    }
-    
-    snapshots.value.push(snapshot)
-    
-    if (snapshots.value.length > maxHistory) {
-      snapshots.value.shift()
+
+    const newSnapshots = currentIndex.value < snapshots.value.length - 1
+      ? snapshots.value.slice(0, currentIndex.value + 1)
+      : [...snapshots.value]
+
+    newSnapshots.push(snapshot)
+
+    if (newSnapshots.length > maxHistory) {
+      newSnapshots.shift()
     } else {
       currentIndex.value++
     }
+
+    snapshots.value = newSnapshots
   }
 
   function undo() {
     if (!canUndo.value) return
-    
+
     currentIndex.value--
     const componentStore = useComponentStore()
     componentStore.restoreFromSnapshot(snapshots.value[currentIndex.value])
@@ -39,7 +56,7 @@ export const useHistoryStore = defineStore('history', () => {
 
   function redo() {
     if (!canRedo.value) return
-    
+
     currentIndex.value++
     const componentStore = useComponentStore()
     componentStore.restoreFromSnapshot(snapshots.value[currentIndex.value])

@@ -2,11 +2,15 @@ import type { SchemaPage, SchemaComponent, SchemaCanvas } from '@/types/schema'
 import type { EditorComponent } from '@/types/component'
 import { useComponentStore } from '@/stores/component'
 import { useEditorStore } from '@/stores/editor'
+import { useEventStore } from '@/stores/event'
+import { useDataSourceStore } from '@/stores/dataSource'
 import { SCHEMA_VERSION, createEmptySchema, validateSchema, migrateSchema } from '@/types/schema'
 
 export function exportToSchema(): SchemaPage {
   const componentStore = useComponentStore()
   const editorStore = useEditorStore()
+  const eventStore = useEventStore()
+  const dataSourceStore = useDataSourceStore()
   
   const schema: SchemaPage = {
     version: SCHEMA_VERSION,
@@ -17,6 +21,9 @@ export function exportToSchema(): SchemaPage {
       backgroundColor: '#ffffff'
     },
     components: componentStore.components.map(convertToSchemaComponent),
+    events: eventStore.getEventBindingsForExport(),
+    dataSources: dataSourceStore.getDataSourcesForExport(),
+    bindings: dataSourceStore.getBindingsForExport(),
     metadata: {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -30,6 +37,8 @@ export function exportToSchema(): SchemaPage {
 export function importFromSchema(schema: SchemaPage): void {
   const componentStore = useComponentStore()
   const editorStore = useEditorStore()
+  const eventStore = useEventStore()
+  const dataSourceStore = useDataSourceStore()
   
   const migratedSchema = migrateSchema(schema)
   
@@ -38,6 +47,18 @@ export function importFromSchema(schema: SchemaPage): void {
   componentStore.setComponents(
     migratedSchema.components.map(convertFromSchemaComponent)
   )
+  
+  if (migratedSchema.events) {
+    eventStore.importEventBindings(migratedSchema.events)
+  }
+  
+  if (migratedSchema.dataSources) {
+    dataSourceStore.importDataSources(migratedSchema.dataSources)
+  }
+  
+  if (migratedSchema.bindings) {
+    dataSourceStore.importBindings(migratedSchema.bindings)
+  }
 }
 
 function convertToSchemaComponent(component: EditorComponent): SchemaComponent {

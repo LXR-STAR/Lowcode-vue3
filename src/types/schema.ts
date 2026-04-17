@@ -38,6 +38,9 @@ export interface SchemaPage {
   description?: string
   canvas: SchemaCanvas
   components: SchemaComponent[]
+  events?: any[]
+  dataSources?: any[]
+  bindings?: any[]
   metadata?: {
     createdAt?: string
     updatedAt?: string
@@ -69,11 +72,11 @@ export function validateSchema(schema: any): schema is SchemaPage {
   if (!schema.version || typeof schema.version !== 'string') return false
   if (!schema.canvas || typeof schema.canvas !== 'object') return false
   if (!Array.isArray(schema.components)) return false
-  
+
   if (typeof schema.canvas.width !== 'number' || typeof schema.canvas.height !== 'number') {
     return false
   }
-  
+
   return true
 }
 
@@ -81,12 +84,12 @@ export function migrateSchema(schema: any): SchemaPage {
   if (!validateSchema(schema)) {
     throw new Error('Invalid schema format')
   }
-  
+
   const currentVersion = SCHEMA_VERSION
   if (schema.version === currentVersion) {
     return schema
   }
-  
+
   return {
     ...schema,
     version: currentVersion,

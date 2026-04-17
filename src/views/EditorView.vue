@@ -6,10 +6,14 @@ import CanvasArea from '@/components/editor/CanvasArea.vue'
 import PropertyPanel from '@/components/editor/PropertyPanel.vue'
 import LayerPanel from '@/components/editor/LayerPanel.vue'
 import CanvasSettings from '@/components/editor/CanvasSettings.vue'
+import EventPanel from '@/components/editor/EventPanel.vue'
+import DataSourcePanel from '@/components/editor/DataSourcePanel.vue'
+import DataBindingPanel from '@/components/editor/DataBindingPanel.vue'
 import { useEditorStore } from '@/stores'
 
 const editorStore = useEditorStore()
-const activeLeftTab = ref<'components' | 'layers' | 'settings'>('components')
+const activeLeftTab = ref<'components' | 'layers' | 'settings' | 'datasource'>('components')
+const activeRightTab = ref<'properties' | 'events' | 'bindings'>('properties')
 const leftPanelCollapsed = ref(false)
 const rightPanelCollapsed = ref(false)
 
@@ -60,6 +64,14 @@ function toggleRightPanel() {
             </div>
             <div
               class="tab-item"
+              :class="{ active: activeLeftTab === 'datasource' }"
+              @click="activeLeftTab = 'datasource'"
+            >
+              <el-icon><Coin /></el-icon>
+              <span>数据</span>
+            </div>
+            <div
+              class="tab-item"
               :class="{ active: activeLeftTab === 'settings' }"
               @click="activeLeftTab = 'settings'"
             >
@@ -70,6 +82,7 @@ function toggleRightPanel() {
           <div class="left-content">
             <ComponentPanel v-show="activeLeftTab === 'components'" />
             <LayerPanel v-show="activeLeftTab === 'layers'" />
+            <DataSourcePanel v-show="activeLeftTab === 'datasource'" />
             <CanvasSettings v-show="activeLeftTab === 'settings'" />
           </div>
         </template>
@@ -90,7 +103,37 @@ function toggleRightPanel() {
           </el-icon>
         </div>
         <div v-if="!rightPanelCollapsed" class="right-content">
-          <PropertyPanel />
+          <div class="right-tabs">
+            <div
+              class="tab-item"
+              :class="{ active: activeRightTab === 'properties' }"
+              @click="activeRightTab = 'properties'"
+            >
+              <el-icon><Edit /></el-icon>
+              <span>属性</span>
+            </div>
+            <div
+              class="tab-item"
+              :class="{ active: activeRightTab === 'events' }"
+              @click="activeRightTab = 'events'"
+            >
+              <el-icon><Bell /></el-icon>
+              <span>事件</span>
+            </div>
+            <div
+              class="tab-item"
+              :class="{ active: activeRightTab === 'bindings' }"
+              @click="activeRightTab = 'bindings'"
+            >
+              <el-icon><Link /></el-icon>
+              <span>绑定</span>
+            </div>
+          </div>
+          <div class="right-panel-content">
+            <PropertyPanel v-show="activeRightTab === 'properties'" />
+            <EventPanel v-show="activeRightTab === 'events'" />
+            <DataBindingPanel v-show="activeRightTab === 'bindings'" />
+          </div>
         </div>
       </div>
     </div>
@@ -184,6 +227,46 @@ function toggleRightPanel() {
   }
 
   .right-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .right-tabs {
+    display: flex;
+    border-bottom: 1px solid #e4e7ed;
+    flex-shrink: 0;
+
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 11px;
+      color: #909399;
+
+      &:hover {
+        color: #606266;
+        background: #f5f7fa;
+      }
+
+      &.active {
+        color: #409eff;
+        background: #ecf5ff;
+      }
+
+      .el-icon {
+        font-size: 18px;
+      }
+    }
+  }
+
+  .right-panel-content {
     flex: 1;
     overflow: hidden;
   }

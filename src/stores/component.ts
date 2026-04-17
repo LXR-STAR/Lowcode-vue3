@@ -1,13 +1,13 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, shallowRef, computed, triggerRef } from 'vue'
 import type { EditorComponent, ComponentType, ComponentStyle, ComponentProps } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 import { DEFAULT_COMPONENT_STYLE } from '@/types'
 
 export const useComponentStore = defineStore('component', () => {
-  const components = ref<EditorComponent[]>([])
+  const components = shallowRef<EditorComponent[]>([])
   const selectedComponentIds = ref<string[]>([])
-  const copiedComponents = ref<EditorComponent[]>([])
+  const copiedComponents = shallowRef<EditorComponent[]>([])
 
   const selectedComponents = computed(() =>
     components.value.filter(c => selectedComponentIds.value.includes(c.id))
@@ -169,21 +169,22 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function addComponent(component: EditorComponent) {
-    components.value.push(component)
+    components.value = [...components.value, component]
   }
 
   function removeComponent(id: string) {
     for (let i = 0; i < components.value.length; i++) {
       const comp = components.value[i]
       if (comp.id === id) {
-        components.value.splice(i, 1)
+        components.value = components.value.filter(c => c.id !== id)
         selectedComponentIds.value = selectedComponentIds.value.filter(cid => cid !== id)
         return
       }
       if (comp.children) {
         const childIndex = comp.children.findIndex(c => c.id === id)
         if (childIndex > -1) {
-          comp.children.splice(childIndex, 1)
+          comp.children = comp.children.filter(c => c.id !== id)
+          triggerRef(components)
           selectedComponentIds.value = selectedComponentIds.value.filter(cid => cid !== id)
           return
         }
@@ -199,22 +200,40 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function updateComponent(id: string, updates: Partial<EditorComponent>) {
-    const component = components.value.find(c => c.id === id)
-    if (component) {
-      Object.assign(component, updates)
+    const index = components.value.findIndex(c => c.id === id)
+    if (index > -1) {
+      components.value = [
+        ...components.value.slice(0, index),
+        { ...components.value[index], ...updates },
+        ...components.value.slice(index + 1)
+      ]
     }
   }
 
   function updateComponentStyle(id: string, styleUpdates: Partial<ComponentStyle>) {
-    for (const comp of components.value) {
+    for (let i = 0; i < components.value.length; i++) {
+      const comp = components.value[i]
       if (comp.id === id) {
-        comp.style = { ...comp.style, ...styleUpdates }
+        components.value = [
+          ...components.value.slice(0, i),
+          { ...comp, style: { ...comp.style, ...styleUpdates } },
+          ...components.value.slice(i + 1)
+        ]
         return
       }
       if (comp.children) {
-        const child = comp.children.find(c => c.id === id)
-        if (child) {
-          child.style = { ...child.style, ...styleUpdates }
+        const childIndex = comp.children.findIndex(c => c.id === id)
+        if (childIndex > -1) {
+          const newChildren = [...comp.children]
+          newChildren[childIndex] = {
+            ...newChildren[childIndex],
+            style: { ...newChildren[childIndex].style, ...styleUpdates }
+          }
+          components.value = [
+            ...components.value.slice(0, i),
+            { ...comp, children: newChildren },
+            ...components.value.slice(i + 1)
+          ]
           return
         }
       }
@@ -222,15 +241,29 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function updateComponentProps(id: string, propsUpdates: Partial<ComponentProps>) {
-    for (const comp of components.value) {
+    for (let i = 0; i < components.value.length; i++) {
+      const comp = components.value[i]
       if (comp.id === id) {
-        comp.props = { ...comp.props, ...propsUpdates }
+        components.value = [
+          ...components.value.slice(0, i),
+          { ...comp, props: { ...comp.props, ...propsUpdates } },
+          ...components.value.slice(i + 1)
+        ]
         return
       }
       if (comp.children) {
-        const child = comp.children.find(c => c.id === id)
-        if (child) {
-          child.props = { ...child.props, ...propsUpdates }
+        const childIndex = comp.children.findIndex(c => c.id === id)
+        if (childIndex > -1) {
+          const newChildren = [...comp.children]
+          newChildren[childIndex] = {
+            ...newChildren[childIndex],
+            props: { ...newChildren[childIndex].props, ...propsUpdates }
+          }
+          components.value = [
+            ...components.value.slice(0, i),
+            { ...comp, children: newChildren },
+            ...components.value.slice(i + 1)
+          ]
           return
         }
       }
@@ -263,51 +296,54 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function pasteComponents() {
-    copiedComponents.value.forEach(component => {
-      const newComponent = {
-        ...component,
-        id: uuidv4(),
-        style: {
-          ...component.style,
-          x: component.style.x + 20,
-          y: component.style.y + 20
-        }
+    const newComponents = copiedComponents.value.map(component => ({
+      ...component,
+      id: uuidv4(),
+      style: {
+        ...component.style,
+        x: component.style.x + 20,
+        y: component.style.y + 20
       }
-      addComponent(newComponent)
-    })
+    }))
+    components.value = [...components.value, ...newComponents]
   }
 
   function moveLayer(id: string, direction: 'up' | 'down' | 'top' | 'bottom') {
-    const component = components.value.find(c => c.id === id)
-    if (!component) return
+    const componentIndex = components.value.findIndex(c => c.id === id)
+    if (componentIndex === -1) return
 
+    const component = components.value[componentIndex]
     const sortedByZ = [...components.value].sort((a, b) => a.style.zIndex - b.style.zIndex)
     const currentIndex = sortedByZ.findIndex(c => c.id === id)
+
+    let newZIndex = component.style.zIndex
 
     switch (direction) {
       case 'up':
         if (currentIndex < sortedByZ.length - 1) {
           const nextComponent = sortedByZ[currentIndex + 1]
-          const tempZ = component.style.zIndex
-          component.style.zIndex = nextComponent.style.zIndex
-          nextComponent.style.zIndex = tempZ
+          newZIndex = nextComponent.style.zIndex + 1
         }
         break
       case 'down':
         if (currentIndex > 0) {
           const prevComponent = sortedByZ[currentIndex - 1]
-          const tempZ = component.style.zIndex
-          component.style.zIndex = prevComponent.style.zIndex
-          prevComponent.style.zIndex = tempZ
+          newZIndex = prevComponent.style.zIndex - 1
         }
         break
       case 'top':
-        component.style.zIndex = Math.max(...components.value.map(c => c.style.zIndex)) + 1
+        newZIndex = Math.max(...components.value.map(c => c.style.zIndex)) + 1
         break
       case 'bottom':
-        component.style.zIndex = Math.min(...components.value.map(c => c.style.zIndex)) - 1
+        newZIndex = Math.min(...components.value.map(c => c.style.zIndex)) - 1
         break
     }
+
+    components.value = [
+      ...components.value.slice(0, componentIndex),
+      { ...component, style: { ...component.style, zIndex: newZIndex } },
+      ...components.value.slice(componentIndex + 1)
+    ]
   }
 
   function getComponentsSnapshot(): EditorComponent[] {
@@ -343,16 +379,38 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function rotateComponent(id: string, angle: number) {
-    const component = components.value.find(c => c.id === id)
-    if (component) {
-      component.style.rotate = (component.style.rotate + angle) % 360
+    const index = components.value.findIndex(c => c.id === id)
+    if (index > -1) {
+      const component = components.value[index]
+      components.value = [
+        ...components.value.slice(0, index),
+        {
+          ...component,
+          style: {
+            ...component.style,
+            rotate: ((component.style.rotate || 0) + angle) % 360
+          }
+        },
+        ...components.value.slice(index + 1)
+      ]
     }
   }
 
   function setComponentRotation(id: string, angle: number) {
-    const component = components.value.find(c => c.id === id)
-    if (component) {
-      component.style.rotate = angle % 360
+    const index = components.value.findIndex(c => c.id === id)
+    if (index > -1) {
+      const component = components.value[index]
+      components.value = [
+        ...components.value.slice(0, index),
+        {
+          ...component,
+          style: {
+            ...component.style,
+            rotate: angle % 360
+          }
+        },
+        ...components.value.slice(index + 1)
+      ]
     }
   }
 
@@ -396,20 +454,17 @@ export const useComponentStore = defineStore('component', () => {
       visible: true
     }
 
-    selectedComps.forEach(c => {
-      const index = components.value.findIndex(comp => comp.id === c.id)
-      if (index > -1) {
-        components.value.splice(index, 1)
-      }
-    })
-
-    components.value.push(group)
+    const remainingComponents = components.value.filter(c => !ids.includes(c.id))
+    components.value = [...remainingComponents, group]
     selectedComponentIds.value = [groupId]
   }
 
   function ungroupComponent(id: string) {
-    const group = components.value.find(c => c.id === id)
-    if (!group || !group.children || group.children.length === 0) return
+    const groupIndex = components.value.findIndex(c => c.id === id)
+    if (groupIndex === -1) return
+
+    const group = components.value[groupIndex]
+    if (!group.children || group.children.length === 0) return
 
     const children = group.children.map(c => ({
       ...c,
@@ -421,14 +476,11 @@ export const useComponentStore = defineStore('component', () => {
       parentId: undefined
     }))
 
-    const groupIndex = components.value.findIndex(c => c.id === id)
-    if (groupIndex > -1) {
-      components.value.splice(groupIndex, 1)
-    }
-
-    children.forEach(c => {
-      components.value.push(c)
-    })
+    components.value = [
+      ...components.value.slice(0, groupIndex),
+      ...components.value.slice(groupIndex + 1),
+      ...children
+    ]
 
     selectedComponentIds.value = children.map(c => c.id)
   }
@@ -459,45 +511,60 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function addChildToContainer(containerId: string, child: EditorComponent) {
-    const container = components.value.find(c => c.id === containerId)
-    if (!container) return
+    const containerIndex = components.value.findIndex(c => c.id === containerId)
+    if (containerIndex === -1) return
 
-    if (!container.children) {
-      container.children = []
+    const container = components.value[containerIndex]
+    const newChild = {
+      ...child,
+      parentId: containerId,
+      style: {
+        ...child.style,
+        x: child.style.x - container.style.x,
+        y: child.style.y - container.style.y
+      }
     }
 
-    child.parentId = containerId
-    child.style.x = child.style.x - container.style.x
-    child.style.y = child.style.y - container.style.y
+    const newChildren = container.children ? [...container.children, newChild] : [newChild]
 
-    container.children.push(child)
+    const remainingComponents = components.value.filter(c => c.id !== child.id && c.id !== containerId)
 
-    const childIndex = components.value.findIndex(c => c.id === child.id)
-    if (childIndex > -1) {
-      components.value.splice(childIndex, 1)
-    }
+    components.value = [
+      ...remainingComponents,
+      { ...container, children: newChildren }
+    ]
   }
 
   function removeChildFromContainer(containerId: string, childId: string, targetX?: number, targetY?: number) {
-    const container = components.value.find(c => c.id === containerId)
-    if (!container || !container.children) return
+    const containerIndex = components.value.findIndex(c => c.id === containerId)
+    if (containerIndex === -1) return
+
+    const container = components.value[containerIndex]
+    if (!container.children) return
 
     const childIndex = container.children.findIndex(c => c.id === childId)
     if (childIndex === -1) return
 
-    const child = container.children[childIndex]
-    child.parentId = undefined
+    const child = { ...container.children[childIndex], parentId: undefined }
 
     if (targetX !== undefined && targetY !== undefined) {
-      child.style.x = targetX
-      child.style.y = targetY
+      child.style = { ...child.style, x: targetX, y: targetY }
     } else {
-      child.style.x = child.style.x + container.style.x
-      child.style.y = child.style.y + container.style.y
+      child.style = {
+        ...child.style,
+        x: child.style.x + container.style.x,
+        y: child.style.y + container.style.y
+      }
     }
 
-    container.children.splice(childIndex, 1)
-    components.value.push(child)
+    const newChildren = container.children.filter(c => c.id !== childId)
+
+    components.value = [
+      ...components.value.slice(0, containerIndex),
+      { ...container, children: newChildren },
+      ...components.value.slice(containerIndex + 1),
+      child
+    ]
   }
 
   function getComponentById(id: string): EditorComponent | undefined {
@@ -512,13 +579,23 @@ export const useComponentStore = defineStore('component', () => {
   }
 
   function updateChildInContainer(containerId: string, childId: string, updates: Partial<EditorComponent>) {
-    const container = components.value.find(c => c.id === containerId)
-    if (!container || !container.children) return
+    const containerIndex = components.value.findIndex(c => c.id === containerId)
+    if (containerIndex === -1) return
 
-    const child = container.children.find(c => c.id === childId)
-    if (child) {
-      Object.assign(child, updates)
-    }
+    const container = components.value[containerIndex]
+    if (!container.children) return
+
+    const childIndex = container.children.findIndex(c => c.id === childId)
+    if (childIndex === -1) return
+
+    const newChildren = [...container.children]
+    newChildren[childIndex] = { ...newChildren[childIndex], ...updates }
+
+    components.value = [
+      ...components.value.slice(0, containerIndex),
+      { ...container, children: newChildren },
+      ...components.value.slice(containerIndex + 1)
+    ]
   }
 
   function setComponents(newComponents: EditorComponent[]) {

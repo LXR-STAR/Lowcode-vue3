@@ -1,3 +1,5 @@
 export { useComponentStore } from './component'
 export { useEditorStore } from './editor'
 export { useHistoryStore } from './history'
+export { useEventStore } from './event'
+export { useDataSourceStore } from './dataSource'

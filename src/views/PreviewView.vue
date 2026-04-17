@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useComponentStore, useEditorStore } from '@/stores'
+import { useComponentStore, useEditorStore, useEventStore, useDataSourceStore } from '@/stores'
 import TextComponent from '@/components/components/TextComponent.vue'
 import ImageComponent from '@/components/components/ImageComponent.vue'
 import ButtonComponent from '@/components/components/ButtonComponent.vue'
@@ -20,6 +20,8 @@ import TableComponent from '@/components/components/TableComponent.vue'
 const router = useRouter()
 const componentStore = useComponentStore()
 const editorStore = useEditorStore()
+const eventStore = useEventStore()
+const dataSourceStore = useDataSourceStore()
 
 const previewScale = ref(1)
 
@@ -114,10 +116,50 @@ function renderComponent(component: any) {
   }
 }
 
+function handleComponentEvent(componentId: string, eventType: string, event: Event) {
+  const events = eventStore.getComponentEvents(componentId)
+  const matchedEvent = events.find(e => e.type === eventType && e.enabled)
+
+  if (matchedEvent) {
+    if (matchedEvent.condition) {
+      try {
+        const conditionFunc = new Function('context', 'event', `return ${matchedEvent.condition}`)
+        if (!conditionFunc({}, event)) {
+          return
+        }
+      } catch (e) {
+        console.error('Condition evaluation failed:', e)
+      }
+    }
+
+    const context = {
+      componentId,
+      eventType,
+      value: (event.target as any).value,
+      checked: (event.target as any).checked
+    }
+
+    eventStore.executeActions(matchedEvent.actions, context)
+  }
+}
+
+async function loadAllDataSources() {
+  for (const ds of dataSourceStore.dataSources) {
+    if (ds.enabled && ds.autoRefresh) {
+      try {
+        await dataSourceStore.fetchData(ds.id)
+      } catch (error) {
+        console.error(`Failed to load data source ${ds.name}:`, error)
+      }
+    }
+  }
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('resize', handleResize)
   calculateScale()
+  loadAllDataSources()
 })
 
 onUnmounted(() => {
@@ -159,11 +201,18 @@ onUnmounted(() => {
             <div
               class="preview-component"
               :style="renderComponent(component)"
+              @click="handleComponentEvent(component.id, 'click', $event)"
+              @dblclick="handleComponentEvent(component.id, 'dblclick', $event)"
+              @mouseenter="handleComponentEvent(component.id, 'mouseenter', $event)"
+              @mouseleave="handleComponentEvent(component.id, 'mouseleave', $event)"
             >
               <component
                 :is="componentMap[component.type] || TextComponent"
                 :component="component"
                 mode="preview"
+                @focus="handleComponentEvent(component.id, 'focus', $event)"
+                @blur="handleComponentEvent(component.id, 'blur', $event)"
+                @change="handleComponentEvent(component.id, 'change', $event)"
               />
             </div>
           </template>

@@ -1,0 +1,44 @@
+{
+  "name": "@devflow/renderer",
+  "version": "1.0.0",
+  "description": "DevFlow Schema Renderer - A standalone renderer for DevFlow low-code platform",
+  "main": "./dist/devflow-renderer.umd.js",
+  "module": "./dist/devflow-renderer.es.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/devflow-renderer.es.js",
+      "require": "./dist/devflow-renderer.umd.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "keywords": [
+    "vue",
+    "low-code",
+    "renderer",
+    "schema",
+    "devflow"
+  ],
+  "author": "",
+  "license": "MIT",
+  "peerDependencies": {
+    "vue": "^3.4.0",
+    "element-plus": "^2.4.0",
+    "echarts": "^5.4.0"
+  },
+  "devDependencies": {
+    "vue": "^3.4.0",
+    "element-plus": "^2.4.0",
+    "echarts": "^5.4.0",
+    "vite": "^5.0.0",
+    "typescript": "^5.0.0",
+    "vite-plugin-dts": "^3.0.0"
+  }
+}
