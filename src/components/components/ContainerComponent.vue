@@ -1,19 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, defineAsyncComponent } from 'vue'
 import { useComponentStore, useEditorStore, useHistoryStore } from '@/stores'
 import type { EditorComponent } from '@/types'
-import TextComponent from './TextComponent.vue'
-import ImageComponent from './ImageComponent.vue'
-import ButtonComponent from './ButtonComponent.vue'
-import InputComponent from './InputComponent.vue'
-import TextareaComponent from './TextareaComponent.vue'
-import SelectComponent from './SelectComponent.vue'
-import CheckboxComponent from './CheckboxComponent.vue'
-import RadioComponent from './RadioComponent.vue'
-import SwitchComponent from './SwitchComponent.vue'
-import DatePickerComponent from './DatePickerComponent.vue'
-import ChartComponent from './ChartComponent.vue'
-import TableComponent from './TableComponent.vue'
+
+const RenderComponent = defineAsyncComponent(() => import('@/components/editor/RenderComponent.vue'))
 
 const props = defineProps<{
   component: EditorComponent
@@ -25,9 +15,7 @@ const editorStore = useEditorStore()
 const historyStore = useHistoryStore()
 
 const containerRef = ref<HTMLElement | null>(null)
-const isDraggingChild = ref(false)
-const draggedChildId = ref<string | null>(null)
-const dragOverIndex = ref<number | null>(null)
+const isDragOver = ref(false)
 
 const direction = computed(() => props.component.props.props?.direction || 'column')
 const justify = computed(() => props.component.props.props?.justify || 'flex-start')
@@ -51,74 +39,15 @@ const hasChildren = computed(() => {
   return props.component.children && props.component.children.length > 0
 })
 
-const componentMap: Record<string, any> = {
-  text: TextComponent,
-  image: ImageComponent,
-  button: ButtonComponent,
-  input: InputComponent,
-  textarea: TextareaComponent,
-  select: SelectComponent,
-  checkbox: CheckboxComponent,
-  radio: RadioComponent,
-  switch: SwitchComponent,
-  datePicker: DatePickerComponent,
-  chart: ChartComponent,
-  table: TableComponent
-}
-
-function handleChildClick(e: MouseEvent, childId: string) {
-  e.stopPropagation()
-  componentStore.selectComponent(childId, e.ctrlKey || e.metaKey)
-}
-
-function handleChildDragStart(e: DragEvent, childId: string, index: number) {
-  e.stopPropagation()
-  isDraggingChild.value = true
-  draggedChildId.value = childId
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('childId', childId)
-    e.dataTransfer.setData('parentId', props.component.id)
-    e.dataTransfer.setData('childIndex', String(index))
-  }
-}
-
-function handleChildDragOver(e: DragEvent, index: number) {
-  e.preventDefault()
-  e.stopPropagation()
-  if (draggedChildId.value) {
-    dragOverIndex.value = index
-  }
-}
-
-function handleChildDrop(e: DragEvent, targetIndex: number) {
-  e.preventDefault()
-  e.stopPropagation()
-
-  const draggedId = e.dataTransfer?.getData('childId')
-  const sourceParentId = e.dataTransfer?.getData('parentId')
-
-  if (draggedId && props.component.children) {
-    const currentIndex = props.component.children.findIndex(c => c.id === draggedId)
-    if (currentIndex !== -1 && currentIndex !== targetIndex) {
-      const children = [...props.component.children]
-      const [removed] = children.splice(currentIndex, 1)
-      children.splice(targetIndex, 0, removed)
-
-      componentStore.updateComponent(props.component.id, { children })
-      historyStore.saveSnapshot()
+function isChildContainer(element: HTMLElement): boolean {
+  let current = element.parentElement
+  while (current && current !== containerRef.value) {
+    if (current.classList.contains('container-component') || current.classList.contains('grid-component')) {
+      return true
     }
+    current = current.parentElement
   }
-
-  isDraggingChild.value = false
-  draggedChildId.value = null
-  dragOverIndex.value = null
-}
-
-function handleDragEnd() {
-  isDraggingChild.value = false
-  draggedChildId.value = null
-  dragOverIndex.value = null
+  return false
 }
 
 function handleContainerClick(e: MouseEvent) {
@@ -127,60 +56,61 @@ function handleContainerClick(e: MouseEvent) {
   }
 }
 
-function handleChildImageUpdate(childId: string, value: { src: string; alt?: string }) {
-  const child = props.component.children?.find(c => c.id === childId)
-  if (child) {
-    child.props = {
-      ...child.props,
-      imageStyle: {
-        ...child.props.imageStyle,
-        src: value.src,
-        alt: value.alt || child.props.imageStyle?.alt
-      }
-    }
-    historyStore.saveSnapshot()
-  }
-}
-
-function handleChildTextUpdate(childId: string, value: string) {
-  const child = props.component.children?.find(c => c.id === childId)
-  if (child) {
-    child.props = {
-      ...child.props,
-      text: value
-    }
-    historyStore.saveSnapshot()
-  }
-}
-
-const isDragOver = ref(false)
-
 function handleContainerDragOver(e: DragEvent) {
-  const componentType = editorStore.draggingComponentType
-  if (componentType && componentType !== 'container' && componentType !== 'grid') {
+  const hasComponentType = e.dataTransfer?.types?.includes('componentType') || editorStore.draggingComponentType
+  if (hasComponentType) {
     e.preventDefault()
-    e.stopPropagation()
     isDragOver.value = true
   }
 }
 
 function handleContainerDragLeave(e: DragEvent) {
-  e.stopPropagation()
-  isDragOver.value = false
+  if (e.target === containerRef.value) {
+    isDragOver.value = false
+  }
 }
 
 function handleContainerDrop(e: DragEvent) {
   e.preventDefault()
-  e.stopPropagation()
   isDragOver.value = false
 
   const componentType = e.dataTransfer?.getData('componentType') as any
-  if (!componentType || componentType === 'container' || componentType === 'grid') return
+  if (!componentType) return
 
-  const size = { width: 100, height: 40 }
+  const dropTarget = e.target as HTMLElement
+  const isDirectDrop = dropTarget === containerRef.value ||
+    dropTarget.classList.contains('container-hint') ||
+    containerRef.value?.contains(dropTarget) && !isChildContainer(dropTarget)
+
+  if (!isDirectDrop) return
+
+  e.stopPropagation()
+
+  const sizeMap: Record<string, { width: number; height: number }> = {
+    text: { width: 200, height: 40 },
+    image: { width: 200, height: 150 },
+    button: { width: 100, height: 40 },
+    input: { width: 200, height: 40 },
+    textarea: { width: 200, height: 80 },
+    select: { width: 200, height: 40 },
+    checkbox: { width: 120, height: 32 },
+    radio: { width: 120, height: 32 },
+    container: { width: 300, height: 200 },
+    grid: { width: 300, height: 200 },
+    chart: { width: 400, height: 300 },
+    table: { width: 400, height: 200 }
+  }
+
+  const size = sizeMap[componentType] || { width: 100, height: 40 }
   const newChild = componentStore.createComponent(componentType, {}, {}, 0, 0)
   newChild.style.width = size.width
   newChild.style.height = size.height
+  newChild.parentId = props.component.id
+
+  if (componentType === 'container' || componentType === 'grid') {
+    newChild.style.backgroundColor = '#f5f7fa'
+    newChild.style.borderWidth = 1
+  }
 
   const children = [...(props.component.children || []), newChild]
   componentStore.updateComponent(props.component.id, { children })
@@ -188,14 +118,6 @@ function handleContainerDrop(e: DragEvent) {
 
   componentStore.selectComponent(newChild.id)
 }
-
-onMounted(() => {
-  window.addEventListener('dragend', handleDragEnd)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('dragend', handleDragEnd)
-})
 </script>
 
 <template>
@@ -215,32 +137,15 @@ onUnmounted(() => {
     @drop="handleContainerDrop"
   >
     <template v-if="hasChildren">
-      <div
-        v-for="(child, index) in component.children"
+      <RenderComponent
+        v-for="child in component.children"
         :key="child.id"
-        class="container-child"
-        :class="{
-          'is-selected': componentStore.selectedComponentIds.includes(child.id),
-          'is-dragging': draggedChildId === child.id,
-          'drag-over-before': dragOverIndex === index && draggedChildId !== child.id
-        }"
-        draggable="true"
-        @click="handleChildClick($event, child.id)"
-        @dragstart="handleChildDragStart($event, child.id, index)"
-        @dragover="handleChildDragOver($event, index)"
-        @drop="handleChildDrop($event, index)"
-      >
-        <component
-          :is="componentMap[child.type] || TextComponent"
-          :component="child"
-          @update:image="(v: any) => handleChildImageUpdate(child.id, v)"
-          @update:text="(v: string) => handleChildTextUpdate(child.id, v)"
-        />
-      </div>
-      <div
-        v-if="dragOverIndex === component.children!.length"
-        class="drop-indicator"
-      ></div>
+        :component="child"
+        :selected="componentStore.selectedComponentIds.includes(child.id)"
+        :highlighted="highlighted"
+        @update:alignmentLines="$emit('update:alignmentLines', $event)"
+        @clear:alignmentLines="$emit('clear:alignmentLines')"
+      />
     </template>
     <div v-else class="container-hint">
       <el-icon><Grid /></el-icon>
@@ -285,44 +190,6 @@ onUnmounted(() => {
   border-width: 2px;
   border-style: dashed !important;
   background: rgba(64, 158, 255, 0.1) !important;
-}
-
-.container-child {
-  flex-shrink: 0;
-  cursor: move;
-  position: relative;
-  border: 2px solid transparent;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.container-child:hover {
-  border-color: #c0c4cc;
-}
-
-.container-child.is-selected {
-  border-color: #409eff;
-  background: rgba(64, 158, 255, 0.05);
-}
-
-.container-child.is-dragging {
-  opacity: 0.5;
-}
-
-.container-child.drag-over-before::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: -4px;
-  height: 2px;
-  background: #409eff;
-}
-
-.drop-indicator {
-  height: 2px;
-  background: #409eff;
-  margin: 4px 0;
 }
 
 .container-hint {

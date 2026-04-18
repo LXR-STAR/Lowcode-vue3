@@ -46,11 +46,12 @@ const emit = defineEmits<{
 const componentStyle = computed(() => {
   const isContainer = props.component.type === 'container' || props.component.type === 'grid'
   const autoExpand = isContainer && props.component.props.props?.autoExpand !== false
+  const isInContainer = !!props.component.parentId
 
   return {
-    position: 'absolute' as const,
-    left: `${props.component.style.x}px`,
-    top: `${props.component.style.y}px`,
+    position: isInContainer ? 'relative' as const : 'absolute' as const,
+    left: isInContainer ? undefined : `${props.component.style.x}px`,
+    top: isInContainer ? undefined : `${props.component.style.y}px`,
     width: `${props.component.style.width}px`,
     height: autoExpand ? 'auto' : `${props.component.style.height}px`,
     minHeight: autoExpand ? `${props.component.style.height}px` : undefined,
@@ -144,20 +145,20 @@ function handleMouseDown(e: MouseEvent) {
   if (editorStore.previewMode || props.component.locked) return
   e.stopPropagation()
 
+  if (e.button !== 0) return
+
   if (!props.selected) {
     componentStore.selectComponent(props.component.id, e.ctrlKey || e.metaKey)
   }
 
-  if (e.target === componentRef.value || (e.target as HTMLElement).closest('.component-content')) {
-    isDragging.value = true
-    dragStart.value = {
-      x: e.clientX,
-      y: e.clientY,
-      componentX: props.component.style.x,
-      componentY: props.component.style.y
-    }
-    editorStore.isDragging = true
+  isDragging.value = true
+  dragStart.value = {
+    x: e.clientX,
+    y: e.clientY,
+    componentX: props.component.style.x,
+    componentY: props.component.style.y
   }
+  editorStore.isDragging = true
 }
 
 function handleResizeStart(e: MouseEvent, handle: string) {
@@ -323,15 +324,13 @@ onUnmounted(() => {
     @mousedown="handleMouseDown"
     @contextmenu="handleContextMenu"
   >
-    <div class="component-content">
-      <component
-        :is="currentComponent"
-        :component="component"
-        :highlighted="highlighted"
-        @update="handleTextUpdate"
-        @update:image="handleImageUpdate"
-      />
-    </div>
+    <component
+      :is="currentComponent"
+      :component="component"
+      :highlighted="highlighted"
+      @update="handleTextUpdate"
+      @update:image="handleImageUpdate"
+    />
 
     <template v-if="selected && !editorStore.previewMode">
       <div
@@ -339,13 +338,13 @@ onUnmounted(() => {
         :key="handle.type"
         :class="['resize-handle', handle.type]"
         :style="{ cursor: handle.cursor }"
-        @mousedown="handleResizeStart($event, handle.type)"
+        @mousedown.stop="handleResizeStart($event, handle.type)"
       />
 
       <div class="rotate-line" />
       <div
         class="rotate-handle"
-        @mousedown="handleRotateStart"
+        @mousedown.stop="handleRotateStart"
       >
         <el-icon><Refresh /></el-icon>
       </div>
@@ -398,17 +397,6 @@ onUnmounted(() => {
       outline-color: #e6a23c;
     }
   }
-}
-
-.component-content {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
-}
-
-.group-child {
-  overflow: hidden;
 }
 
 .resize-handle {

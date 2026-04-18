@@ -1,0 +1,41 @@
+@use 'variables' as *;
+
+:root {
+  --color-primary: #{$primary-color};
+  --color-primary-light: #{$primary-light};
+  --color-success: #{$success-color};
+  --color-warning: #{$warning-color};
+  --color-danger: #{$danger-color};
+  --color-info: #{$info-color};
+
+  --text-primary: #{$text-primary};
+  --text-regular: #{$text-regular};
+  --text-secondary: #{$text-secondary};
+  --text-placeholder: #{$text-placeholder};
+
+  --bg-base: #{$bg-base};
+  --bg-white: #{$bg-white};
+  --bg-light: #{$bg-light};
+
+  --border-base: #{$border-base};
+  --border-light: #{$border-light};
+
+  --shadow-base: #{$shadow-base};
+  --shadow-light: #{$shadow-light};
+}
+
+[data-theme='dark'] {
+  --color-primary: #409eff;
+  --color-primary-light: #1a3a5c;
+
+  --text-primary: #e5eaf3;
+  --text-regular: #cfd3dc;
+  --text-secondary: #a3a6ad;
+
+  --bg-base: #141414;
+  --bg-white: #1d1d1d;
+  --bg-light: #262727;
+
+  --border-base: #4c4d4f;
+  --border-light: #414243;
+}

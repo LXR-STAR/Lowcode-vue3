@@ -13,6 +13,7 @@ const canvasRef = ref<HTMLElement | null>(null)
 
 const isPanning = ref(false)
 const panStart = ref({ x: 0, y: 0 })
+const isSpacePressed = ref(false)
 const selectionBox = ref<{ startX: number; startY: number; endX: number; endY: number } | null>(null)
 
 const dragPreview = ref<{
@@ -193,7 +194,7 @@ function handleCanvasClick(e: MouseEvent) {
 }
 
 function handleMouseDown(e: MouseEvent) {
-  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+  if (e.button === 1 || (e.button === 0 && e.altKey) || (e.button === 0 && isSpacePressed.value)) {
     isPanning.value = true
     panStart.value = { x: e.clientX - editorStore.canvas.offsetX, y: e.clientY - editorStore.canvas.offsetY }
     e.preventDefault()
@@ -310,14 +311,33 @@ function clearAlignmentLines() {
   alignmentLines.value = { horizontal: [], vertical: [] }
 }
 
+function handleKeyDown(e: KeyboardEvent) {
+  if (e.code === 'Space' && !isSpacePressed.value) {
+    isSpacePressed.value = true
+  }
+}
+
+function handleKeyUp(e: KeyboardEvent) {
+  if (e.code === 'Space') {
+    isSpacePressed.value = false
+    if (isPanning.value) {
+      isPanning.value = false
+    }
+  }
+}
+
 onMounted(() => {
   window.addEventListener('mousemove', handleMouseMove)
   window.addEventListener('mouseup', handleMouseUp)
+  window.addEventListener('keydown', handleKeyDown)
+  window.addEventListener('keyup', handleKeyUp)
 })
 
 onUnmounted(() => {
   window.removeEventListener('mousemove', handleMouseMove)
   window.removeEventListener('mouseup', handleMouseUp)
+  window.removeEventListener('keydown', handleKeyDown)
+  window.removeEventListener('keyup', handleKeyUp)
 })
 
 defineExpose({
@@ -331,6 +351,7 @@ defineExpose({
     <div
       ref="canvasContainer"
       class="canvas-container"
+      :class="{ 'is-panning': isPanning, 'space-pressed': isSpacePressed }"
       @dragover="handleDragOver"
       @dragleave="handleDragLeave"
       @drop="handleDrop"
@@ -390,6 +411,7 @@ defineExpose({
     <div class="canvas-info">
       <span>{{ editorStore.canvas.width }} × {{ editorStore.canvas.height }}</span>
       <span>{{ Math.round(editorStore.canvas.scale * 100) }}%</span>
+      <span class="pan-hint" title="按住空格键拖动画布">空格+拖动</span>
     </div>
   </div>
 </template>
@@ -408,6 +430,15 @@ defineExpose({
   height: 100%;
   overflow: hidden;
   position: relative;
+
+  &.space-pressed {
+    cursor: grab;
+  }
+
+  &.is-panning {
+    cursor: grabbing;
+    user-select: none;
+  }
 }
 
 .canvas {
@@ -464,5 +495,10 @@ defineExpose({
   border-radius: 4px;
   color: #fff;
   font-size: 12px;
+
+  .pan-hint {
+    opacity: 0.7;
+    cursor: help;
+  }
 }
 </style>

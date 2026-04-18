@@ -1,0 +1,56 @@
+// 主色调
+$primary-color: #409eff;
+$primary-light: #ecf5ff;
+$success-color: #67c23a;
+$warning-color: #e6a23c;
+$danger-color: #f56c6c;
+$info-color: #909399;
+
+// 文字颜色
+$text-primary: #303133;
+$text-regular: #606266;
+$text-secondary: #909399;
+$text-placeholder: #c0c4cc;
+
+// 背景颜色
+$bg-base: #f0f2f5;
+$bg-white: #ffffff;
+$bg-light: #f5f7fa;
+$bg-dark: rgba(0, 0, 0, 0.6);
+
+// 边框颜色
+$border-base: #e4e7ed;
+$border-light: #ebeef5;
+$border-dark: #dcdfe6;
+
+// 阴影
+$shadow-base: 0 2px 12px rgba(0, 0, 0, 0.1);
+$shadow-light: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-dark: 0 4px 16px rgba(0, 0, 0, 0.12);
+
+// 间距
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+
+// 圆角
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 12px;
+
+// 过渡时间
+$transition-fast: 0.2s;
+$transition-base: 0.3s;
+
+// 面板尺寸
+$panel-header-height: 40px;
+$toolbar-height: 48px;
+$tab-height: 44px;
+
+// 画布
+$canvas-grid-color: #e8e8e8;
+$canvas-guide-color: #f56c6c;
+$canvas-selection-color: rgba(64, 158, 255, 0.1);
+$canvas-selection-border: #409eff;

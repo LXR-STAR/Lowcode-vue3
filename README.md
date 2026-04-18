@@ -248,10 +248,3 @@ import '@devflow/renderer/style.css'
 
 详见 [packages/renderer/README.md](./packages/renderer/README.md)
 
-## 🤝 贡献
-
-欢迎提交 Issue 和 Pull Request！
-
-## 📝 License
-
-MIT License
