@@ -137,11 +137,21 @@ function handleClearCanvas() {
   historyStore.saveSnapshot()
 }
 
+function isEditableElement(): boolean {
+  const el = document.activeElement
+  if (!el) return false
+  const tag = el.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
+  if ((el as HTMLElement).isContentEditable) return true
+  return false
+}
+
 function handleKeyDown(e: KeyboardEvent) {
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
   const ctrlKey = isMac ? e.metaKey : e.ctrlKey
 
   if (ctrlKey && e.key === 'z') {
+    if (isEditableElement()) return
     e.preventDefault()
     if (e.shiftKey) {
       historyStore.redo()
@@ -149,15 +159,19 @@ function handleKeyDown(e: KeyboardEvent) {
       historyStore.undo()
     }
   } else if (ctrlKey && e.key === 'y') {
+    if (isEditableElement()) return
     e.preventDefault()
     historyStore.redo()
   } else if (ctrlKey && e.key === 'c') {
+    if (isEditableElement()) return
     e.preventDefault()
     handleCopy()
   } else if (ctrlKey && e.key === 'v') {
+    if (isEditableElement()) return
     e.preventDefault()
     handlePaste()
   } else if (ctrlKey && e.key === 'g') {
+    if (isEditableElement()) return
     e.preventDefault()
     if (e.shiftKey) {
       handleUngroup()
@@ -165,13 +179,13 @@ function handleKeyDown(e: KeyboardEvent) {
       handleGroup()
     }
   } else if (ctrlKey && e.key === 'a') {
+    if (isEditableElement()) return
     e.preventDefault()
     componentStore.selectAll()
   } else if (e.key === 'Delete' || e.key === 'Backspace') {
-    if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-      e.preventDefault()
-      handleDelete()
-    }
+    if (isEditableElement()) return
+    e.preventDefault()
+    handleDelete()
   }
 }
 
@@ -224,7 +238,7 @@ onUnmounted(() => {
           @click="handleUngroup"
           circle
         >
-          <el-icon><SwitchButton /></el-icon>
+          <el-icon><Scissor /></el-icon>
         </el-button>
       </el-tooltip>
       <el-tooltip content="删除 (Delete)" placement="bottom">

@@ -45,15 +45,16 @@ const emit = defineEmits<{
 
 const componentStyle = computed(() => {
   const isContainer = props.component.type === 'container' || props.component.type === 'grid'
-  const autoExpand = isContainer && props.component.props.props?.autoExpand !== false
   const isInContainer = !!props.component.parentId
+  const isChart = props.component.type === 'chart'
+  const autoExpand = isContainer && props.component.props.props?.autoExpand !== false
 
   return {
     position: isInContainer ? 'relative' as const : 'absolute' as const,
     left: isInContainer ? undefined : `${props.component.style.x}px`,
     top: isInContainer ? undefined : `${props.component.style.y}px`,
     width: `${props.component.style.width}px`,
-    height: autoExpand ? 'auto' : `${props.component.style.height}px`,
+    height: (autoExpand && !isChart) ? 'auto' : `${props.component.style.height}px`,
     minHeight: autoExpand ? `${props.component.style.height}px` : undefined,
     transform: `rotate(${props.component.style.rotate}deg)`,
     opacity: props.component.style.opacity,

@@ -11,6 +11,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AIPanel: typeof import('./components/editor/AIPanel.vue')['default']
     ButtonComponent: typeof import('./components/components/ButtonComponent.vue')['default']
     CanvasArea: typeof import('./components/editor/CanvasArea.vue')['default']
     CanvasSettings: typeof import('./components/editor/CanvasSettings.vue')['default']

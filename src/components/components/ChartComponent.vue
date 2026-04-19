@@ -20,12 +20,14 @@ const defaultOptions = computed(() => {
       trigger: 'axis'
     },
     legend: {
-      data: customOption?.series?.[0]?.name ? [customOption.series[0].name] : ['数据']
+      data: customOption?.series?.[0]?.name ? [customOption.series[0].name] : ['数据'],
+      ...(customOption?.legend || { top: 'bottom' })
     },
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '3%',
+      top: customOption?.title?.text ? 60 : 30,
+      bottom: 40,
       containLabel: true
     },
     xAxis: {
@@ -63,6 +65,10 @@ const defaultOptions = computed(() => {
     delete baseOption.xAxis
     delete baseOption.yAxis
     delete baseOption.grid
+  }
+
+  if (customOption?.legend) {
+    baseOption.legend = { ...baseOption.legend, ...customOption.legend }
   }
 
   return baseOption

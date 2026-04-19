@@ -78,10 +78,10 @@ function handleCancel() {
 
 async function handleTest() {
   if (newDataSource.value.type !== 'api') return
-  
+
   testing.value = true
   testResult.value = null
-  
+
   try {
     const result = await dataSourceStore.testApiConnection(newDataSource.value as any)
     testResult.value = result
@@ -141,14 +141,14 @@ function getTypeLabel(type: DataSourceType): string {
 
     <div v-if="activeTab === 'list'" class="datasource-list">
       <div v-if="dataSourceStore.dataSources.length === 0" class="empty-hint">
-        <el-icon><Database /></el-icon>
+        <el-icon><Coin /></el-icon>
         <span>暂无数据源</span>
       </div>
 
       <div v-else class="list-content">
-        <div 
-          v-for="ds in dataSourceStore.dataSources" 
-          :key="ds.id" 
+        <div
+          v-for="ds in dataSourceStore.dataSources"
+          :key="ds.id"
           class="datasource-item"
         >
           <div class="item-header">
@@ -195,19 +195,19 @@ function getTypeLabel(type: DataSourceType): string {
 
         <el-form-item label="类型">
           <el-select v-model="newDataSource.type" :disabled="!!editingDataSource">
-            <el-option 
-              v-for="dt in dataSourceTypes" 
-              :key="dt.value" 
-              :label="dt.label" 
-              :value="dt.value" 
+            <el-option
+              v-for="dt in dataSourceTypes"
+              :key="dt.value"
+              :label="dt.label"
+              :value="dt.value"
             />
           </el-select>
         </el-form-item>
 
         <el-form-item label="描述">
-          <el-input 
-            v-model="newDataSource.description" 
-            type="textarea" 
+          <el-input
+            v-model="newDataSource.description"
+            type="textarea"
             :rows="2"
             placeholder="数据源描述（可选）"
           />
@@ -231,7 +231,7 @@ function getTypeLabel(type: DataSourceType): string {
 
         <template v-if="newDataSource.type === 'api'">
           <el-divider content-position="left">API配置</el-divider>
-          
+
           <el-form-item label="请求地址" required>
             <el-input v-model="(newDataSource as any).url" placeholder="https://api.example.com/data" />
           </el-form-item>
@@ -247,9 +247,9 @@ function getTypeLabel(type: DataSourceType): string {
 
           <el-form-item label="请求参数">
             <div class="param-list">
-              <div 
-                v-for="(param, index) in (newDataSource as any).params" 
-                :key="param.id" 
+              <div
+                v-for="(param, index) in (newDataSource as any).params"
+                :key="param.id"
                 class="param-item"
               >
                 <el-input v-model="param.key" placeholder="参数名" style="width: 100px" />
@@ -288,9 +288,9 @@ function getTypeLabel(type: DataSourceType): string {
           </el-form-item>
 
           <el-form-item label="数据路径">
-            <el-input 
-              v-model="(newDataSource as any).dataPath" 
-              placeholder="data.list（提取返回数据中的特定字段）" 
+            <el-input
+              v-model="(newDataSource as any).dataPath"
+              placeholder="data.list（提取返回数据中的特定字段）"
             />
           </el-form-item>
 

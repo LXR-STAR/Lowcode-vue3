@@ -134,7 +134,8 @@ function handleDrop(e: DragEvent) {
   }
 
   const container = componentStore.findContainerAtPosition(x, y)
-  if (container && componentType !== 'container' && componentType !== 'grid') {
+  if (container) {
+    component.parentId = container.id
     componentStore.addChildToContainer(container.id, component)
   } else {
     componentStore.addComponent(component)

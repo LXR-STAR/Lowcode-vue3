@@ -30,7 +30,8 @@ const gridStyle = computed(() => ({
   gridRowGap: `${rowGap.value}px`,
   gridColumnGap: `${colGap.value}px`,
   padding: `${padding.value}px`,
-  height: '100%'
+  minHeight: '100%',
+  boxSizing: 'border-box'
 }))
 
 const hasChildren = computed(() => {
