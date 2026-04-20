@@ -12,6 +12,9 @@ export interface SchemaStyle {
   backgroundColor?: string
   boxShadow?: string
   zIndex: number
+  padding?: number
+  margin?: number
+  overflow?: string
 }
 
 export interface SchemaComponent {

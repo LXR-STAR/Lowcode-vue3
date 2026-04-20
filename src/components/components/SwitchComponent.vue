@@ -7,12 +7,20 @@ const props = defineProps<{
   mode?: 'edit' | 'preview'
 }>()
 
+const emit = defineEmits<{
+  (e: 'change', value: boolean): void
+}>()
+
 const isPreview = computed(() => props.mode === 'preview')
 const localValue = ref(props.component.props.props?.value || false)
 
 const disabled = computed(() => props.component.props.props?.disabled || false)
 const activeText = computed(() => props.component.props.props?.activeText || '')
 const inactiveText = computed(() => props.component.props.props?.inactiveText || '')
+
+function handleChange(val: boolean) {
+  emit('change', val)
+}
 </script>
 
 <template>
@@ -22,6 +30,7 @@ const inactiveText = computed(() => props.component.props.props?.inactiveText ||
       :disabled="disabled"
       :active-text="activeText"
       :inactive-text="inactiveText"
+      @change="handleChange"
     />
   </div>
 </template>

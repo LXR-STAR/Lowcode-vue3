@@ -16,6 +16,7 @@ const COMPONENT_SCHEMA_SPEC = `
 | checkbox/radio | text, props{checked} |
 | switch | props{value, activeText, inactiveText} |
 | datePicker | props{placeholder} |
+| link | text, linkStyle{href, target, color, underline} |
 | container | props{direction(row/column), justify, align, gap, padding}, children:[] |
 | grid | props{columns, rowGap, colGap, padding}, children:[] |
 | table | props{columns:[{prop,label}], data:[{}]} |

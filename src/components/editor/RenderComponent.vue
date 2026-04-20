@@ -1,22 +1,24 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useComponentStore, useEditorStore, useHistoryStore } from '@/stores'
 import type { EditorComponent } from '@/types'
-import TextComponent from '../components/TextComponent.vue'
-import ImageComponent from '../components/ImageComponent.vue'
-import ButtonComponent from '../components/ButtonComponent.vue'
-import InputComponent from '../components/InputComponent.vue'
-import TextareaComponent from '../components/TextareaComponent.vue'
-import SelectComponent from '../components/SelectComponent.vue'
-import CheckboxComponent from '../components/CheckboxComponent.vue'
-import RadioComponent from '../components/RadioComponent.vue'
-import SwitchComponent from '../components/SwitchComponent.vue'
-import DatePickerComponent from '../components/DatePickerComponent.vue'
-import ChartComponent from '../components/ChartComponent.vue'
-import ContainerComponent from '../components/ContainerComponent.vue'
-import GridComponent from '../components/GridComponent.vue'
-import TableComponent from '../components/TableComponent.vue'
 import ContextMenu from './ContextMenu.vue'
+
+const TextComponent = defineAsyncComponent(() => import('../components/TextComponent.vue'))
+const ImageComponent = defineAsyncComponent(() => import('../components/ImageComponent.vue'))
+const ButtonComponent = defineAsyncComponent(() => import('../components/ButtonComponent.vue'))
+const InputComponent = defineAsyncComponent(() => import('../components/InputComponent.vue'))
+const TextareaComponent = defineAsyncComponent(() => import('../components/TextareaComponent.vue'))
+const SelectComponent = defineAsyncComponent(() => import('../components/SelectComponent.vue'))
+const CheckboxComponent = defineAsyncComponent(() => import('../components/CheckboxComponent.vue'))
+const RadioComponent = defineAsyncComponent(() => import('../components/RadioComponent.vue'))
+const SwitchComponent = defineAsyncComponent(() => import('../components/SwitchComponent.vue'))
+const DatePickerComponent = defineAsyncComponent(() => import('../components/DatePickerComponent.vue'))
+const ChartComponent = defineAsyncComponent(() => import('../components/ChartComponent.vue'))
+const ContainerComponent = defineAsyncComponent(() => import('../components/ContainerComponent.vue'))
+const GridComponent = defineAsyncComponent(() => import('../components/GridComponent.vue'))
+const TableComponent = defineAsyncComponent(() => import('../components/TableComponent.vue'))
+const LinkComponent = defineAsyncComponent(() => import('../components/LinkComponent.vue'))
 
 const props = defineProps<{
   component: EditorComponent
@@ -37,6 +39,7 @@ const resizeHandle = ref<string | null>(null)
 const dragStart = ref({ x: 0, y: 0, componentX: 0, componentY: 0 })
 const resizeStart = ref({ x: 0, y: 0, width: 0, height: 0, left: 0, top: 0 })
 const rotateStart = ref({ angle: 0, startAngle: 0 })
+let rafId: number | null = null
 
 const emit = defineEmits<{
   (e: 'update:alignmentLines', lines: { horizontal: number[]; vertical: number[] }): void
@@ -65,6 +68,9 @@ const componentStyle = computed(() => {
     backgroundColor: props.component.style.backgroundColor,
     boxShadow: props.component.style.boxShadow,
     zIndex: props.component.style.zIndex,
+    padding: props.component.style.padding ? `${props.component.style.padding}px` : undefined,
+    margin: props.component.style.margin ? `${props.component.style.margin}px` : undefined,
+    overflow: props.component.style.overflow || 'visible',
     cursor: isDragging.value ? 'move' : 'default',
     display: props.component.visible ? 'block' : 'none',
     pointerEvents: props.component.locked ? 'none' : 'auto'
@@ -96,7 +102,8 @@ const componentMap: Record<string, any> = {
   chart: ChartComponent,
   container: ContainerComponent,
   grid: GridComponent,
-  table: TableComponent
+  table: TableComponent,
+  link: LinkComponent
 }
 
 const currentComponent = computed(() => componentMap[props.component.type] || TextComponent)
@@ -192,6 +199,14 @@ function handleRotateStart(e: MouseEvent) {
 }
 
 function handleMouseMove(e: MouseEvent) {
+  if (rafId !== null) return
+  rafId = requestAnimationFrame(() => {
+    rafId = null
+    doHandleMouseMove(e)
+  })
+}
+
+function doHandleMouseMove(e: MouseEvent) {
   if (isDragging.value) {
     const deltaX = (e.clientX - dragStart.value.x) / editorStore.canvas.scale
     const deltaY = (e.clientY - dragStart.value.y) / editorStore.canvas.scale

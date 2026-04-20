@@ -7,13 +7,31 @@ const props = defineProps<{
   mode?: 'edit' | 'preview'
 }>()
 
-const isPreview = computed(() => props.mode === 'preview')
-const localValue = ref(props.component.props.props?.value || '')
+const emit = defineEmits<{
+  (e: 'change', value: string): void
+  (e: 'focus', event: FocusEvent): void
+  (e: 'blur', event: FocusEvent): void
+}>()
 
-const placeholder = computed(() => props.component.props.props?.placeholder || '请输入')
-const disabled = computed(() => props.component.props.props?.disabled || false)
-const maxlength = computed(() => props.component.props.props?.maxlength || undefined)
-const rows = computed(() => props.component.props.props?.rows || 3)
+const isPreview = computed(() => props.mode === 'preview')
+const localValue = ref('')
+
+const placeholder = computed(() => props.component.props.inputStyle?.placeholder || '请输入内容')
+const disabled = computed(() => props.component.props.inputStyle?.disabled || false)
+const maxlength = computed(() => props.component.props.inputStyle?.maxlength || undefined)
+const rows = computed(() => props.component.props.inputStyle?.rows || 3)
+
+function handleChange(val: string) {
+  emit('change', val)
+}
+
+function handleFocus(e: FocusEvent) {
+  emit('focus', e)
+}
+
+function handleBlur(e: FocusEvent) {
+  emit('blur', e)
+}
 </script>
 
 <template>
@@ -26,6 +44,9 @@ const rows = computed(() => props.component.props.props?.rows || 3)
       :maxlength="maxlength"
       :rows="rows"
       :readonly="!isPreview && !localValue"
+      @change="handleChange"
+      @focus="handleFocus"
+      @blur="handleBlur"
     />
   </div>
 </template>

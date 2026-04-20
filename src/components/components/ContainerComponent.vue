@@ -4,10 +4,26 @@ import { useComponentStore, useEditorStore, useHistoryStore } from '@/stores'
 import type { EditorComponent } from '@/types'
 
 const RenderComponent = defineAsyncComponent(() => import('@/components/editor/RenderComponent.vue'))
+const AsyncContainerComponent = defineAsyncComponent(() => import('../components/ContainerComponent.vue'))
+const TextComponent = defineAsyncComponent(() => import('../components/TextComponent.vue'))
+const ImageComponent = defineAsyncComponent(() => import('../components/ImageComponent.vue'))
+const ButtonComponent = defineAsyncComponent(() => import('../components/ButtonComponent.vue'))
+const InputComponent = defineAsyncComponent(() => import('../components/InputComponent.vue'))
+const TextareaComponent = defineAsyncComponent(() => import('../components/TextareaComponent.vue'))
+const SelectComponent = defineAsyncComponent(() => import('../components/SelectComponent.vue'))
+const CheckboxComponent = defineAsyncComponent(() => import('../components/CheckboxComponent.vue'))
+const RadioComponent = defineAsyncComponent(() => import('../components/RadioComponent.vue'))
+const SwitchComponent = defineAsyncComponent(() => import('../components/SwitchComponent.vue'))
+const DatePickerComponent = defineAsyncComponent(() => import('../components/DatePickerComponent.vue'))
+const ChartComponent = defineAsyncComponent(() => import('../components/ChartComponent.vue'))
+const GridComponent = defineAsyncComponent(() => import('../components/GridComponent.vue'))
+const TableComponent = defineAsyncComponent(() => import('../components/TableComponent.vue'))
+const LinkComponent = defineAsyncComponent(() => import('../components/LinkComponent.vue'))
 
 const props = defineProps<{
   component: EditorComponent
   highlighted?: boolean
+  mode?: 'edit' | 'preview'
 }>()
 
 const componentStore = useComponentStore()
@@ -16,6 +32,8 @@ const historyStore = useHistoryStore()
 
 const containerRef = ref<HTMLElement | null>(null)
 const isDragOver = ref(false)
+
+const isPreview = computed(() => props.mode === 'preview')
 
 const direction = computed(() => props.component.props.props?.direction || 'column')
 const justify = computed(() => props.component.props.props?.justify || 'flex-start')
@@ -40,6 +58,45 @@ const hasChildren = computed(() => {
   return props.component.children && props.component.children.length > 0
 })
 
+const childComponentMap: Record<string, any> = {
+  text: TextComponent,
+  image: ImageComponent,
+  button: ButtonComponent,
+  input: InputComponent,
+  textarea: TextareaComponent,
+  select: SelectComponent,
+  checkbox: CheckboxComponent,
+  radio: RadioComponent,
+  switch: SwitchComponent,
+  datePicker: DatePickerComponent,
+  chart: ChartComponent,
+  container: AsyncContainerComponent,
+  grid: GridComponent,
+  table: TableComponent,
+  link: LinkComponent
+}
+
+function getChildStyle(child: EditorComponent) {
+  const isChildContainer = child.type === 'container' || child.type === 'grid'
+  const childAutoExpand = isChildContainer && child.props?.props?.autoExpand !== false
+
+  return {
+    position: 'relative' as const,
+    width: `${child.style.width}px`,
+    height: childAutoExpand ? 'auto' : `${child.style.height}px`,
+    minHeight: childAutoExpand ? `${child.style.height}px` : undefined,
+    transform: `rotate(${child.style.rotate || 0}deg)`,
+    opacity: child.style.opacity ?? 1,
+    borderWidth: `${child.style.borderWidth || 0}px`,
+    borderColor: child.style.borderColor || 'transparent',
+    borderStyle: child.style.borderStyle || 'solid',
+    borderRadius: `${child.style.borderRadius || 0}px`,
+    backgroundColor: child.style.backgroundColor || 'transparent',
+    boxShadow: child.style.boxShadow || 'none',
+    display: child.visible !== false ? 'block' : 'none'
+  }
+}
+
 function isChildContainer(element: HTMLElement): boolean {
   let current = element.parentElement
   while (current && current !== containerRef.value) {
@@ -52,12 +109,14 @@ function isChildContainer(element: HTMLElement): boolean {
 }
 
 function handleContainerClick(e: MouseEvent) {
+  if (isPreview.value) return
   if (e.target === containerRef.value) {
     componentStore.selectComponent(props.component.id)
   }
 }
 
 function handleContainerDragOver(e: DragEvent) {
+  if (isPreview.value) return
   const hasComponentType = e.dataTransfer?.types?.includes('componentType') || editorStore.draggingComponentType
   if (hasComponentType) {
     e.preventDefault()
@@ -72,6 +131,7 @@ function handleContainerDragLeave(e: DragEvent) {
 }
 
 function handleContainerDrop(e: DragEvent) {
+  if (isPreview.value) return
   e.preventDefault()
   isDragOver.value = false
 
@@ -126,10 +186,11 @@ function handleContainerDrop(e: DragEvent) {
     ref="containerRef"
     class="container-component"
     :class="{
-      'show-border': showBorder,
+      'show-border': showBorder && !isPreview,
       'has-children': hasChildren,
       'is-highlighted': highlighted,
-      'is-drag-over': isDragOver
+      'is-drag-over': isDragOver,
+      'preview-mode': isPreview
     }"
     :style="containerStyle"
     @click="handleContainerClick"
@@ -138,17 +199,33 @@ function handleContainerDrop(e: DragEvent) {
     @drop="handleContainerDrop"
   >
     <template v-if="hasChildren">
-      <RenderComponent
-        v-for="child in component.children"
-        :key="child.id"
-        :component="child"
-        :selected="componentStore.selectedComponentIds.includes(child.id)"
-        :highlighted="highlighted"
-        @update:alignmentLines="$emit('update:alignmentLines', $event)"
-        @clear:alignmentLines="$emit('clear:alignmentLines')"
-      />
+      <template v-if="isPreview">
+        <div
+          v-for="child in component.children"
+          :key="child.id"
+          class="preview-child"
+          :style="getChildStyle(child)"
+        >
+          <component
+            :is="childComponentMap[child.type] || TextComponent"
+            :component="child"
+            mode="preview"
+          />
+        </div>
+      </template>
+      <template v-else>
+        <RenderComponent
+          v-for="child in component.children"
+          :key="child.id"
+          :component="child"
+          :selected="componentStore.selectedComponentIds.includes(child.id)"
+          :highlighted="highlighted"
+          @update:alignmentLines="$emit('update:alignmentLines', $event)"
+          @clear:alignmentLines="$emit('clear:alignmentLines')"
+        />
+      </template>
     </template>
-    <div v-else class="container-hint">
+    <div v-else-if="!isPreview" class="container-hint">
       <el-icon><Grid /></el-icon>
       <span>弹性容器</span>
       <span class="hint-sub">{{ direction === 'row' ? '横向' : '纵向' }}排列，拖入组件进行组合</span>
@@ -163,6 +240,10 @@ function handleContainerDrop(e: DragEvent) {
   position: relative;
   box-sizing: border-box;
   transition: all 0.2s;
+}
+
+.container-component.preview-mode {
+  border: none;
 }
 
 .container-component.show-border {
@@ -214,5 +295,9 @@ function handleContainerDrop(e: DragEvent) {
 .hint-sub {
   font-size: 11px;
   color: #dcdfe6;
+}
+
+.preview-child {
+  overflow: hidden;
 }
 </style>

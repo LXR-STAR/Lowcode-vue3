@@ -224,6 +224,13 @@ function getMessageClass(msg: AIChatMessage): string {
     </div>
 
     <div class="ai-input-area">
+      <div class="apply-mode-selector">
+        <span class="mode-label">生成模式:</span>
+        <el-radio-group v-model="aiStore.applyMode" size="small">
+          <el-radio-button value="append">追加到画布</el-radio-button>
+          <el-radio-button value="replace">替换画布</el-radio-button>
+        </el-radio-group>
+      </div>
       <div class="input-wrapper">
         <el-input
           v-model="inputText"
@@ -518,6 +525,28 @@ function getMessageClass(msg: AIChatMessage): string {
   padding: 12px;
   border-top: 1px solid #e4e7ed;
   flex-shrink: 0;
+
+  .apply-mode-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+
+    .mode-label {
+      font-size: 12px;
+      color: #909399;
+      white-space: nowrap;
+    }
+
+    :deep(.el-radio-group) {
+      flex: 1;
+
+      .el-radio-button__inner {
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+    }
+  }
 
   .input-wrapper {
     display: flex;

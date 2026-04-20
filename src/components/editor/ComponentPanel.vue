@@ -15,7 +15,8 @@ const componentGroups = [
       { type: 'text' as ComponentType, name: '文本', icon: 'Document' },
       { type: 'image' as ComponentType, name: '图片', icon: 'Picture' },
       { type: 'button' as ComponentType, name: '按钮', icon: 'Pointer' },
-      { type: 'input' as ComponentType, name: '输入框', icon: 'Edit' }
+      { type: 'input' as ComponentType, name: '输入框', icon: 'Edit' },
+      { type: 'link' as ComponentType, name: '链接', icon: 'Link' }
     ]
   },
   {

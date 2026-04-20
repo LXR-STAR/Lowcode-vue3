@@ -11,7 +11,7 @@ export function exportToSchema(): SchemaPage {
   const editorStore = useEditorStore()
   const eventStore = useEventStore()
   const dataSourceStore = useDataSourceStore()
-  
+
   const schema: SchemaPage = {
     version: SCHEMA_VERSION,
     name: '导出页面',
@@ -30,7 +30,7 @@ export function exportToSchema(): SchemaPage {
       componentCount: componentStore.components.length
     }
   }
-  
+
   return schema
 }
 
@@ -39,23 +39,23 @@ export function importFromSchema(schema: SchemaPage): void {
   const editorStore = useEditorStore()
   const eventStore = useEventStore()
   const dataSourceStore = useDataSourceStore()
-  
+
   const migratedSchema = migrateSchema(schema)
-  
+
   editorStore.setCanvasSize(migratedSchema.canvas.width, migratedSchema.canvas.height)
-  
+
   componentStore.setComponents(
     migratedSchema.components.map(convertFromSchemaComponent)
   )
-  
+
   if (migratedSchema.events) {
     eventStore.importEventBindings(migratedSchema.events)
   }
-  
+
   if (migratedSchema.dataSources) {
     dataSourceStore.importDataSources(migratedSchema.dataSources)
   }
-  
+
   if (migratedSchema.bindings) {
     dataSourceStore.importBindings(migratedSchema.bindings)
   }
@@ -79,17 +79,20 @@ function convertToSchemaComponent(component: EditorComponent): SchemaComponent {
       borderRadius: component.style.borderRadius || 0,
       backgroundColor: component.style.backgroundColor || 'transparent',
       boxShadow: component.style.boxShadow || 'none',
-      zIndex: component.style.zIndex
+      zIndex: component.style.zIndex,
+      padding: component.style.padding,
+      margin: component.style.margin,
+      overflow: component.style.overflow
     },
     props: component.props || {},
     locked: component.locked || false,
     visible: component.visible !== false
   }
-  
+
   if (component.children && component.children.length > 0) {
     schemaComponent.children = component.children.map(convertToSchemaComponent)
   }
-  
+
   return schemaComponent
 }
 
@@ -111,17 +114,20 @@ function convertFromSchemaComponent(schemaComponent: SchemaComponent): EditorCom
       borderRadius: schemaComponent.style.borderRadius || 0,
       backgroundColor: schemaComponent.style.backgroundColor || 'transparent',
       boxShadow: schemaComponent.style.boxShadow || 'none',
-      zIndex: schemaComponent.style.zIndex
+      zIndex: schemaComponent.style.zIndex,
+      padding: schemaComponent.style.padding,
+      margin: schemaComponent.style.margin,
+      overflow: schemaComponent.style.overflow as any
     },
     props: schemaComponent.props || {},
     locked: schemaComponent.locked || false,
     visible: schemaComponent.visible !== false
   }
-  
+
   if (schemaComponent.children && schemaComponent.children.length > 0) {
     component.children = schemaComponent.children.map(convertFromSchemaComponent)
   }
-  
+
   return component
 }
 
@@ -141,25 +147,25 @@ export function loadSchemaFile(): Promise<SchemaPage> {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.json'
-    
+
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0]
       if (!file) {
         reject(new Error('No file selected'))
         return
       }
-      
+
       const reader = new FileReader()
       reader.onload = (event) => {
         try {
           const content = event.target?.result as string
           const schema = JSON.parse(content)
-          
+
           if (!validateSchema(schema)) {
             reject(new Error('Invalid schema format'))
             return
           }
-          
+
           resolve(migrateSchema(schema))
         } catch (error) {
           reject(error)
@@ -168,7 +174,7 @@ export function loadSchemaFile(): Promise<SchemaPage> {
       reader.onerror = () => reject(new Error('Failed to read file'))
       reader.readAsText(file)
     }
-    
+
     input.click()
   })
 }

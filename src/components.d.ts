@@ -59,6 +59,7 @@ declare module 'vue' {
     ImageComponent: typeof import('./components/components/ImageComponent.vue')['default']
     InputComponent: typeof import('./components/components/InputComponent.vue')['default']
     LayerPanel: typeof import('./components/editor/LayerPanel.vue')['default']
+    LinkComponent: typeof import('./components/components/LinkComponent.vue')['default']
     PropertyPanel: typeof import('./components/editor/PropertyPanel.vue')['default']
     RadioComponent: typeof import('./components/components/RadioComponent.vue')['default']
     RenderComponent: typeof import('./components/editor/RenderComponent.vue')['default']

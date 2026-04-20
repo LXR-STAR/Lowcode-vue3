@@ -13,7 +13,7 @@ const visible = ref(false)
 const position = ref({ x: 0, y: 0 })
 
 const component = computed(() =>
-  componentStore.components.find(c => c.id === props.componentId)
+  componentStore.getComponentById(props.componentId)
 )
 
 const isGroupComponent = computed(() =>

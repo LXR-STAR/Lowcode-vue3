@@ -50,6 +50,8 @@ const gridStyle = computed(() => {
   }
 })
 
+const rootComponents = computed(() => componentStore.getRootComponents())
+
 const defaultSizes: Record<ComponentType, { width: number; height: number }> = {
   text: { width: 200, height: 40 },
   image: { width: 200, height: 150 },
@@ -61,7 +63,11 @@ const defaultSizes: Record<ComponentType, { width: number; height: number }> = {
   radio: { width: 120, height: 32 },
   container: { width: 300, height: 200 },
   chart: { width: 400, height: 300 },
-  table: { width: 400, height: 200 }
+  table: { width: 400, height: 200 },
+  link: { width: 120, height: 32 },
+  switch: { width: 80, height: 32 },
+  datePicker: { width: 200, height: 40 },
+  grid: { width: 400, height: 200 }
 }
 
 function handleDragOver(e: DragEvent) {
@@ -366,7 +372,7 @@ defineExpose({
         @click="handleCanvasClick"
       >
         <RenderComponent
-          v-for="component in componentStore.getRootComponents()"
+          v-for="component in rootComponents"
           :key="component.id"
           :component="component"
           :selected="componentStore.selectedComponentIds.includes(component.id)"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, markRaw } from 'vue'
+import { computed, markRaw, defineAsyncComponent } from 'vue'
 import type { SchemaPage, SchemaComponent } from '@/types/schema'
 
 const props = defineProps<{
@@ -7,24 +7,36 @@ const props = defineProps<{
   mode?: 'preview' | 'edit'
 }>()
 
-const TextComponent = markRaw(defineAsyncComponent(() => import('./TextComponent.vue')))
-const ImageComponent = markRaw(defineAsyncComponent(() => import('./ImageComponent.vue')))
-const ButtonComponent = markRaw(defineAsyncComponent(() => import('./ButtonComponent.vue')))
-const InputComponent = markRaw(defineAsyncComponent(() => import('./InputComponent.vue')))
-const ChartComponent = markRaw(defineAsyncComponent(() => import('./ChartComponent.vue')))
-const ContainerComponent = markRaw(defineAsyncComponent(() => import('./ContainerComponent.vue')))
+const TextComponent = markRaw(defineAsyncComponent(() => import('@/components/components/TextComponent.vue')))
+const ImageComponent = markRaw(defineAsyncComponent(() => import('@/components/components/ImageComponent.vue')))
+const ButtonComponent = markRaw(defineAsyncComponent(() => import('@/components/components/ButtonComponent.vue')))
+const InputComponent = markRaw(defineAsyncComponent(() => import('@/components/components/InputComponent.vue')))
+const TextareaComponent = markRaw(defineAsyncComponent(() => import('@/components/components/TextareaComponent.vue')))
+const SelectComponent = markRaw(defineAsyncComponent(() => import('@/components/components/SelectComponent.vue')))
+const CheckboxComponent = markRaw(defineAsyncComponent(() => import('@/components/components/CheckboxComponent.vue')))
+const RadioComponent = markRaw(defineAsyncComponent(() => import('@/components/components/RadioComponent.vue')))
+const SwitchComponent = markRaw(defineAsyncComponent(() => import('@/components/components/SwitchComponent.vue')))
+const DatePickerComponent = markRaw(defineAsyncComponent(() => import('@/components/components/DatePickerComponent.vue')))
+const ChartComponent = markRaw(defineAsyncComponent(() => import('@/components/components/ChartComponent.vue')))
+const ContainerComponent = markRaw(defineAsyncComponent(() => import('@/components/components/ContainerComponent.vue')))
+const GridComponent = markRaw(defineAsyncComponent(() => import('@/components/components/GridComponent.vue')))
+const TableComponent = markRaw(defineAsyncComponent(() => import('@/components/components/TableComponent.vue')))
 
 const componentMap: Record<string, any> = {
   text: TextComponent,
   image: ImageComponent,
   button: ButtonComponent,
   input: InputComponent,
-  textarea: InputComponent,
-  select: InputComponent,
-  checkbox: InputComponent,
-  radio: InputComponent,
+  textarea: TextareaComponent,
+  select: SelectComponent,
+  checkbox: CheckboxComponent,
+  radio: RadioComponent,
+  switch: SwitchComponent,
+  datePicker: DatePickerComponent,
   chart: ChartComponent,
-  container: ContainerComponent
+  container: ContainerComponent,
+  grid: GridComponent,
+  table: TableComponent
 }
 
 const containerStyle = computed(() => ({
@@ -39,12 +51,17 @@ const sortedComponents = computed(() => {
 })
 
 function getComponentStyle(component: SchemaComponent) {
+  const isContainer = component.type === 'container' || component.type === 'grid'
+  const isInContainer = !!(component as any).parentId
+  const autoExpand = isContainer && (component.props as any)?.props?.autoExpand !== false
+
   return {
-    position: 'absolute' as const,
-    left: `${component.style.x}px`,
-    top: `${component.style.y}px`,
+    position: isInContainer ? 'relative' as const : 'absolute' as const,
+    left: isInContainer ? undefined : `${component.style.x}px`,
+    top: isInContainer ? undefined : `${component.style.y}px`,
     width: `${component.style.width}px`,
-    height: `${component.style.height}px`,
+    height: autoExpand ? 'auto' : `${component.style.height}px`,
+    minHeight: autoExpand ? `${component.style.height}px` : undefined,
     transform: component.style.rotate ? `rotate(${component.style.rotate}deg)` : undefined,
     opacity: component.style.opacity ?? 1,
     borderWidth: component.style.borderWidth ? `${component.style.borderWidth}px` : undefined,
@@ -87,6 +104,20 @@ function getComponentType(type: string) {
               :component="child"
               :mode="mode"
             />
+            <template v-if="child.children && child.children.length > 0">
+              <div
+                v-for="grandChild in child.children"
+                :key="grandChild.id"
+                class="render-item"
+                :style="getComponentStyle(grandChild)"
+              >
+                <component
+                  :is="getComponentType(grandChild.type)"
+                  :component="grandChild"
+                  :mode="mode"
+                />
+              </div>
+            </template>
           </div>
         </template>
       </div>

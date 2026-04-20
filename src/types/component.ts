@@ -13,6 +13,7 @@ export type ComponentType =
   | 'grid'
   | 'chart'
   | 'table'
+  | 'link'
 
 export interface ComponentStyle {
   width: number
@@ -28,6 +29,9 @@ export interface ComponentStyle {
   backgroundColor: string
   boxShadow: string
   zIndex: number
+  padding?: number
+  margin?: number
+  overflow?: 'visible' | 'hidden' | 'auto' | 'scroll'
 }
 
 export interface TextStyle {

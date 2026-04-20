@@ -7,11 +7,19 @@ const props = defineProps<{
   mode?: 'edit' | 'preview'
 }>()
 
+const emit = defineEmits<{
+  (e: 'change', value: boolean): void
+}>()
+
 const isPreview = computed(() => props.mode === 'preview')
 const localValue = ref(props.component.props.props?.value || false)
 
 const label = computed(() => props.component.props.props?.label || '选项')
 const disabled = computed(() => props.component.props.props?.disabled || false)
+
+function handleChange(val: boolean) {
+  emit('change', val)
+}
 </script>
 
 <template>
@@ -19,6 +27,7 @@ const disabled = computed(() => props.component.props.props?.disabled || false)
     <el-checkbox
       v-model="localValue"
       :disabled="disabled"
+      @change="handleChange"
     >
       {{ label }}
     </el-checkbox>

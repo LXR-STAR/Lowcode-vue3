@@ -7,6 +7,12 @@ const props = defineProps<{
   mode?: 'edit' | 'preview'
 }>()
 
+const emit = defineEmits<{
+  (e: 'change', value: any): void
+  (e: 'focus', event: FocusEvent): void
+  (e: 'blur', event: FocusEvent): void
+}>()
+
 const isPreview = computed(() => props.mode === 'preview')
 const localValue = ref(props.component.props.props?.value || '')
 
@@ -20,6 +26,18 @@ const options = computed(() => props.component.props.props?.options || [
   { label: '选项二', value: '2' },
   { label: '选项三', value: '3' }
 ])
+
+function handleChange(val: any) {
+  emit('change', val)
+}
+
+function handleFocus(e: FocusEvent) {
+  emit('focus', e)
+}
+
+function handleBlur(e: FocusEvent) {
+  emit('blur', e)
+}
 </script>
 
 <template>
@@ -31,6 +49,9 @@ const options = computed(() => props.component.props.props?.options || [
       :clearable="clearable"
       :multiple="multiple"
       style="width: 100%"
+      @change="handleChange"
+      @focus="handleFocus"
+      @blur="handleBlur"
     >
       <el-option
         v-for="item in options"

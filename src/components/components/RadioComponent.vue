@@ -7,6 +7,10 @@ const props = defineProps<{
   mode?: 'edit' | 'preview'
 }>()
 
+const emit = defineEmits<{
+  (e: 'change', value: string | number): void
+}>()
+
 const isPreview = computed(() => props.mode === 'preview')
 const localValue = ref(props.component.props.props?.value || '')
 
@@ -17,11 +21,15 @@ const options = computed(() => props.component.props.props?.options || [
   { label: '选项二', value: '2' },
   { label: '选项三', value: '3' }
 ])
+
+function handleChange(val: string | number) {
+  emit('change', val)
+}
 </script>
 
 <template>
   <div class="radio-component">
-    <el-radio-group v-model="localValue" :disabled="disabled">
+    <el-radio-group v-model="localValue" :disabled="disabled" @change="handleChange">
       <el-radio
         v-for="item in options"
         :key="item.value"

@@ -39,6 +39,7 @@ export const useHistoryStore = defineStore('history', () => {
 
     if (newSnapshots.length > maxHistory) {
       newSnapshots.shift()
+      currentIndex.value = newSnapshots.length - 1
     } else {
       currentIndex.value++
     }

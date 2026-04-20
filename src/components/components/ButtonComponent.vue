@@ -4,6 +4,11 @@ import type { EditorComponent } from '@/types'
 
 const props = defineProps<{
   component: EditorComponent
+  mode?: 'edit' | 'preview'
+}>()
+
+const emit = defineEmits<{
+  (e: 'click', event: MouseEvent): void
 }>()
 
 const buttonType = computed(() => props.component.props.buttonStyle?.type || 'primary')
@@ -11,6 +16,10 @@ const buttonSize = computed(() => props.component.props.buttonStyle?.size || 'de
 const plain = computed(() => props.component.props.buttonStyle?.plain || false)
 const round = computed(() => props.component.props.buttonStyle?.round || false)
 const text = computed(() => props.component.props.text || '按钮')
+
+function handleClick(e: MouseEvent) {
+  emit('click', e)
+}
 </script>
 
 <template>
@@ -20,6 +29,7 @@ const text = computed(() => props.component.props.text || '按钮')
       :size="buttonSize"
       :plain="plain"
       :round="round"
+      @click="handleClick"
     >
       {{ text }}
     </el-button>

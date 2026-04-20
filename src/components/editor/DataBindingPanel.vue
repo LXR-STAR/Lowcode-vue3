@@ -28,13 +28,16 @@ const bindableProps = [
   { label: '宽度', value: 'style.width' },
   { label: '高度', value: 'style.height' },
   { label: '图片地址', value: 'imageStyle.src' },
+  { label: '链接地址', value: 'linkStyle.href' },
   { label: '表格数据', value: 'data' },
-  { label: '图表配置', value: 'chartStyle.option' }
+  { label: '图表配置', value: 'chartStyle.option' },
+  { label: '下拉选项', value: 'options' },
+  { label: '输入值', value: 'inputStyle.value' }
 ]
 
 function addBinding() {
   if (!selectedComponent.value) return
-  
+
   dataSourceStore.addBinding({
     componentId: selectedComponent.value.id,
     componentProp: 'text',
@@ -80,19 +83,19 @@ function getPropLabel(prop: string): string {
       </div>
 
       <div v-else class="binding-list">
-        <div 
-          v-for="binding in componentBindings" 
-          :key="binding.id" 
+        <div
+          v-for="binding in componentBindings"
+          :key="binding.id"
           class="binding-item"
         >
           <div class="binding-header">
             <span class="binding-title">
               {{ getPropLabel(binding.componentProp) }} ← {{ getDataSourceName(binding.dataSourceId) }}
             </span>
-            <el-button 
-              type="danger" 
-              size="small" 
-              text 
+            <el-button
+              type="danger"
+              size="small"
+              text
               @click="removeBinding(binding.id)"
             >
               <el-icon><Delete /></el-icon>
@@ -102,30 +105,30 @@ function getPropLabel(prop: string): string {
           <el-form label-width="70px" size="small" class="binding-form">
             <el-form-item label="组件属性">
               <el-select v-model="binding.componentProp">
-                <el-option 
-                  v-for="prop in bindableProps" 
-                  :key="prop.value" 
-                  :label="prop.label" 
-                  :value="prop.value" 
+                <el-option
+                  v-for="prop in bindableProps"
+                  :key="prop.value"
+                  :label="prop.label"
+                  :value="prop.value"
                 />
               </el-select>
             </el-form-item>
 
             <el-form-item label="数据源">
               <el-select v-model="binding.dataSourceId">
-                <el-option 
-                  v-for="ds in dataSources" 
-                  :key="ds.id" 
-                  :label="ds.name" 
-                  :value="ds.id" 
+                <el-option
+                  v-for="ds in dataSources"
+                  :key="ds.id"
+                  :label="ds.name"
+                  :value="ds.id"
                 />
               </el-select>
             </el-form-item>
 
             <el-form-item label="数据路径">
-              <el-input 
-                v-model="binding.dataPath" 
-                placeholder="data.list（可选）" 
+              <el-input
+                v-model="binding.dataPath"
+                placeholder="data.list（可选）"
               />
             </el-form-item>
 

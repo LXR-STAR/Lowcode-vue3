@@ -140,6 +140,8 @@ export const useAIStore = defineStore('ai', () => {
     }
   }
 
+  const applyMode = ref<'append' | 'replace'>('append')
+
   function applySchema(schema: ReturnType<typeof parseSchemaResponse>) {
     if (!schema) return
 
@@ -147,6 +149,11 @@ export const useAIStore = defineStore('ai', () => {
     const historyStore = useHistoryStore()
 
     const components = convertSchemaToComponents(schema)
+
+    if (applyMode.value === 'replace') {
+      componentStore.clearAll()
+    }
+
     components.forEach(comp => {
       componentStore.addComponent(comp)
     })
@@ -173,6 +180,7 @@ export const useAIStore = defineStore('ai', () => {
     hasApiKey,
     currentProvider,
     conversationHistory,
+    applyMode,
     saveConfig,
     loadConfig,
     switchProvider,

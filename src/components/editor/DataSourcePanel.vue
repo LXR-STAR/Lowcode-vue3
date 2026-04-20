@@ -525,4 +525,8 @@ function getTypeLabel(type: DataSourceType): string {
   padding-top: 16px;
   border-top: 1px solid #e4e7ed;
 }
+
+:deep(.el-button--small) {
+  padding: 5px 5px;
+}
 </style>

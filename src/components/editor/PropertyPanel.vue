@@ -51,6 +51,13 @@ function updateInputStyle(key: keyof InputStyle, value: any) {
   historyStore.saveSnapshot()
 }
 
+function updateLinkStyle(key: string, value: any) {
+  if (!selectedComponent.value) return
+  const linkStyle = { ...(selectedComponent.value.props.linkStyle || {}), [key]: value }
+  componentStore.updateComponentProps(selectedComponent.value.id, { linkStyle })
+  historyStore.saveSnapshot()
+}
+
 const fontFamilies = [
   { label: '默认', value: 'Arial, sans-serif' },
   { label: '宋体', value: 'SimSun, serif' },
@@ -229,6 +236,44 @@ const buttonSizes = [
                 :min="0"
                 controls-position="right"
               />
+            </el-form-item>
+            <el-form-item label="内边距">
+              <el-input-number
+                :model-value="styleForm.padding || 0"
+                @update:model-value="v => updateStyle('padding', v)"
+                :min="0"
+                controls-position="right"
+              />
+            </el-form-item>
+            <el-form-item label="外边距">
+              <el-input-number
+                :model-value="styleForm.margin || 0"
+                @update:model-value="v => updateStyle('margin', v)"
+                :min="0"
+                controls-position="right"
+              />
+            </el-form-item>
+            <el-form-item label="阴影">
+              <el-select
+                :model-value="styleForm.boxShadow || 'none'"
+                @update:model-value="v => updateStyle('boxShadow', v)"
+              >
+                <el-option label="无" value="none" />
+                <el-option label="轻微" value="0 2px 4px rgba(0,0,0,0.1)" />
+                <el-option label="中等" value="0 4px 12px rgba(0,0,0,0.15)" />
+                <el-option label="较强" value="0 8px 24px rgba(0,0,0,0.2)" />
+                <el-option label="卡片" value="0 2px 12px 0 rgba(0,0,0,0.1)" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="溢出">
+              <el-select
+                :model-value="styleForm.overflow || 'visible'"
+                @update:model-value="v => updateStyle('overflow', v)"
+              >
+                <el-option label="可见" value="visible" />
+                <el-option label="隐藏" value="hidden" />
+                <el-option label="滚动" value="auto" />
+              </el-select>
             </el-form-item>
           </el-form>
         </el-collapse-item>
@@ -787,6 +832,65 @@ const buttonSizes = [
             }" style="width: 100%; margin-top: 8px;">
               <el-icon><Plus /></el-icon> 添加行
             </el-button>
+          </el-form>
+        </el-collapse-item>
+
+        <el-collapse-item v-if="selectedComponent.type === 'link'" title="链接属性" name="link">
+          <el-form label-width="70px" size="small">
+            <el-form-item label="链接文字">
+              <el-input
+                :model-value="propsForm.text"
+                @update:model-value="v => updateProps('text', v)"
+              />
+            </el-form-item>
+            <el-form-item label="链接地址">
+              <el-input
+                :model-value="propsForm.linkStyle?.href"
+                @update:model-value="v => updateLinkStyle('href', v)"
+                placeholder="https://"
+              />
+            </el-form-item>
+            <el-form-item label="打开方式">
+              <el-select
+                :model-value="propsForm.linkStyle?.target || '_blank'"
+                @update:model-value="v => updateLinkStyle('target', v)"
+              >
+                <el-option label="新窗口" value="_blank" />
+                <el-option label="当前窗口" value="_self" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="颜色">
+              <el-color-picker
+                :model-value="propsForm.linkStyle?.color || '#409eff'"
+                @update:model-value="v => updateLinkStyle('color', v)"
+              />
+            </el-form-item>
+            <el-form-item label="字号">
+              <el-input-number
+                :model-value="propsForm.linkStyle?.fontSize || 14"
+                @update:model-value="v => updateLinkStyle('fontSize', v)"
+                :min="12"
+                :max="72"
+                controls-position="right"
+              />
+            </el-form-item>
+            <el-form-item label="粗细">
+              <el-select
+                :model-value="propsForm.linkStyle?.fontWeight || 'normal'"
+                @update:model-value="v => updateLinkStyle('fontWeight', v)"
+              >
+                <el-option label="正常" value="normal" />
+                <el-option label="粗体" value="bold" />
+                <el-option label="更粗" value="bolder" />
+                <el-option label="更细" value="lighter" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="下划线">
+              <el-switch
+                :model-value="propsForm.linkStyle?.underline !== false"
+                @update:model-value="v => updateLinkStyle('underline', v)"
+              />
+            </el-form-item>
           </el-form>
         </el-collapse-item>
 

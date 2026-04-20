@@ -29,13 +29,14 @@ const COMPONENT_NAMES: Record<string, string> = {
   container: '弹性容器',
   grid: '栅格布局',
   chart: '图表组件',
-  table: '表格组件'
+  table: '表格组件',
+  link: '链接组件'
 }
 
 const VALID_TYPES = new Set<string>([
   'text', 'image', 'button', 'input', 'textarea', 'select',
   'checkbox', 'radio', 'switch', 'datePicker', 'container',
-  'grid', 'chart', 'table'
+  'grid', 'chart', 'table', 'link'
 ])
 
 function extractJSON(text: string): string {
@@ -90,7 +91,8 @@ function normalizeComponentType(type: string): ComponentType {
     '栅格': 'grid', 'grid': 'grid',
     '栅格布局': 'grid',
     '图表': 'chart', 'chart': 'chart',
-    '表格': 'table', 'table': 'table'
+    '表格': 'table', 'table': 'table',
+    '链接': 'link', 'link': 'link'
   }
 
   return typeMap[type] || 'text'
@@ -140,6 +142,70 @@ function convertRawComponent(
       }
     }
     props = { ...otherProps, props: gridProps }
+  } else if (type === 'input' || type === 'textarea') {
+    const inputKeys = ['placeholder', 'disabled', 'clearable', 'maxlength', 'showPassword', 'rows', 'type']
+    const inputStyleProps: Record<string, any> = {}
+    const otherProps: Record<string, any> = {}
+    for (const [key, value] of Object.entries(rawProps)) {
+      if (inputKeys.includes(key)) {
+        inputStyleProps[key] = value
+      } else {
+        otherProps[key] = value
+      }
+    }
+    props = { ...otherProps, inputStyle: inputStyleProps }
+  } else if (type === 'button') {
+    const buttonKeys = ['type', 'size', 'plain', 'round', 'circle']
+    const buttonStyleProps: Record<string, any> = {}
+    const otherProps: Record<string, any> = {}
+    for (const [key, value] of Object.entries(rawProps)) {
+      if (buttonKeys.includes(key)) {
+        buttonStyleProps[key] = value
+      } else if (key === 'text') {
+        otherProps[key] = value
+      } else {
+        otherProps[key] = value
+      }
+    }
+    props = { ...otherProps, buttonStyle: buttonStyleProps }
+  } else if (type === 'text') {
+    const textKeys = ['fontSize', 'fontFamily', 'fontWeight', 'fontStyle', 'textDecoration', 'lineHeight', 'textAlign', 'color']
+    const textStyleProps: Record<string, any> = {}
+    const otherProps: Record<string, any> = {}
+    for (const [key, value] of Object.entries(rawProps)) {
+      if (textKeys.includes(key)) {
+        textStyleProps[key] = value
+      } else {
+        otherProps[key] = value
+      }
+    }
+    props = { ...otherProps, textStyle: textStyleProps }
+  } else if (type === 'image') {
+    const imageKeys = ['src', 'alt', 'objectFit']
+    const imageStyleProps: Record<string, any> = {}
+    const otherProps: Record<string, any> = {}
+    for (const [key, value] of Object.entries(rawProps)) {
+      if (imageKeys.includes(key)) {
+        imageStyleProps[key] = value
+      } else {
+        otherProps[key] = value
+      }
+    }
+    props = { ...otherProps, imageStyle: imageStyleProps }
+  } else if (type === 'link') {
+    const linkKeys = ['href', 'target', 'color', 'fontSize', 'fontWeight', 'underline']
+    const linkStyleProps: Record<string, any> = {}
+    const otherProps: Record<string, any> = {}
+    for (const [key, value] of Object.entries(rawProps)) {
+      if (linkKeys.includes(key)) {
+        linkStyleProps[key] = value
+      } else if (key === 'text') {
+        otherProps[key] = value
+      } else {
+        otherProps[key] = value
+      }
+    }
+    props = { ...otherProps, linkStyle: linkStyleProps }
   } else {
     props = rawProps
   }

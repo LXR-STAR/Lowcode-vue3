@@ -65,7 +65,7 @@ function toggleAction(actionId: string) {
 
 function addEvent() {
   if (!selectedComponent.value) return
-  
+
   eventStore.addEvent(selectedComponent.value.id, {
     type: 'click',
     enabled: true,
@@ -80,7 +80,7 @@ function removeEvent(eventId: string) {
 
 function addAction(eventId: string) {
   if (!selectedComponent.value) return
-  
+
   eventStore.addAction(selectedComponent.value.id, eventId, {
     type: 'showMessage',
     enabled: true,
@@ -143,9 +143,9 @@ const dataSources = computed(() => dataSourceStore.dataSources)
       </div>
 
       <div v-else class="event-list">
-        <div 
-          v-for="event in componentEvents" 
-          :key="event.id" 
+        <div
+          v-for="event in componentEvents"
+          :key="event.id"
           class="event-item"
         >
           <div class="event-header" @click="toggleEvent(event.id)">
@@ -162,10 +162,10 @@ const dataSources = computed(() => dataSourceStore.dataSources)
               <span class="event-type">{{ getEventLabel(event.type) }}</span>
               <span class="action-count">{{ event.actions.length }} 个动作</span>
             </div>
-            <el-button 
-              type="danger" 
-              size="small" 
-              text 
+            <el-button
+              type="danger"
+              size="small"
+              text
               @click.stop="removeEvent(event.id)"
             >
               <el-icon><Delete /></el-icon>
@@ -179,11 +179,11 @@ const dataSources = computed(() => dataSourceStore.dataSources)
                   :model-value="event.type"
                   @update:model-value="v => eventStore.updateEvent(selectedComponent!.id, event.id, { type: v })"
                 >
-                  <el-option 
-                    v-for="et in eventTypes" 
-                    :key="et.value" 
-                    :label="et.label" 
-                    :value="et.value" 
+                  <el-option
+                    v-for="et in eventTypes"
+                    :key="et.value"
+                    :label="et.label"
+                    :value="et.value"
                   />
                 </el-select>
               </el-form-item>
@@ -211,9 +211,9 @@ const dataSources = computed(() => dataSourceStore.dataSources)
               </div>
 
               <div v-else class="action-list">
-                <div 
-                  v-for="action in event.actions" 
-                  :key="action.id" 
+                <div
+                  v-for="action in event.actions"
+                  :key="action.id"
                   class="action-item"
                 >
                   <div class="action-header" @click="toggleAction(action.id)">
@@ -229,10 +229,10 @@ const dataSources = computed(() => dataSourceStore.dataSources)
                       />
                       <span class="action-type">{{ getActionLabel(action.type) }}</span>
                     </div>
-                    <el-button 
-                      type="danger" 
-                      size="small" 
-                      text 
+                    <el-button
+                      type="danger"
+                      size="small"
+                      text
                       @click.stop="removeAction(event.id, action.id)"
                     >
                       <el-icon><Delete /></el-icon>
@@ -246,11 +246,11 @@ const dataSources = computed(() => dataSourceStore.dataSources)
                           :model-value="action.type"
                           @update:model-value="v => eventStore.updateAction(selectedComponent!.id, event.id, action.id, { type: v, config: {} })"
                         >
-                          <el-option 
-                            v-for="at in actionTypes" 
-                            :key="at.value" 
-                            :label="at.label" 
-                            :value="at.value" 
+                          <el-option
+                            v-for="at in actionTypes"
+                            :key="at.value"
+                            :label="at.label"
+                            :value="at.value"
                           />
                         </el-select>
                       </el-form-item>
@@ -316,11 +316,11 @@ const dataSources = computed(() => dataSourceStore.dataSources)
                         </el-form-item>
                         <el-form-item v-if="action.config.valueType === 'component'" label="组件">
                           <el-select v-model="action.config.componentId">
-                            <el-option 
-                              v-for="comp in allComponents" 
-                              :key="comp.id" 
-                              :label="comp.name" 
-                              :value="comp.id" 
+                            <el-option
+                              v-for="comp in allComponents"
+                              :key="comp.id"
+                              :label="comp.name"
+                              :value="comp.id"
                             />
                           </el-select>
                         </el-form-item>
@@ -329,11 +329,11 @@ const dataSources = computed(() => dataSourceStore.dataSources)
                       <template v-else-if="action.type === 'apiRequest'">
                         <el-form-item label="数据源">
                           <el-select v-model="action.config.dataSourceId">
-                            <el-option 
-                              v-for="ds in dataSources" 
-                              :key="ds.id" 
-                              :label="ds.name" 
-                              :value="ds.id" 
+                            <el-option
+                              v-for="ds in dataSources"
+                              :key="ds.id"
+                              :label="ds.name"
+                              :value="ds.id"
                             />
                           </el-select>
                         </el-form-item>
@@ -342,11 +342,24 @@ const dataSources = computed(() => dataSourceStore.dataSources)
                       <template v-else-if="action.type === 'showComponent' || action.type === 'hideComponent' || action.type === 'toggleComponent'">
                         <el-form-item label="目标组件">
                           <el-select v-model="action.config.componentIds" multiple>
-                            <el-option 
-                              v-for="comp in allComponents" 
-                              :key="comp.id" 
-                              :label="comp.name" 
-                              :value="comp.id" 
+                            <el-option
+                              v-for="comp in allComponents"
+                              :key="comp.id"
+                              :label="comp.name"
+                              :value="comp.id"
+                            />
+                          </el-select>
+                        </el-form-item>
+                      </template>
+
+                      <template v-else-if="action.type === 'openModal' || action.type === 'closeModal'">
+                        <el-form-item label="目标组件">
+                          <el-select v-model="action.config.modalId">
+                            <el-option
+                              v-for="comp in allComponents"
+                              :key="comp.id"
+                              :label="comp.name"
+                              :value="comp.id"
                             />
                           </el-select>
                         </el-form-item>

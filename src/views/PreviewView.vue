@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useComponentStore, useEditorStore, useEventStore, useDataSourceStore } from '@/stores'
-import TextComponent from '@/components/components/TextComponent.vue'
-import ImageComponent from '@/components/components/ImageComponent.vue'
-import ButtonComponent from '@/components/components/ButtonComponent.vue'
-import InputComponent from '@/components/components/InputComponent.vue'
-import TextareaComponent from '@/components/components/TextareaComponent.vue'
-import SelectComponent from '@/components/components/SelectComponent.vue'
-import CheckboxComponent from '@/components/components/CheckboxComponent.vue'
-import RadioComponent from '@/components/components/RadioComponent.vue'
-import SwitchComponent from '@/components/components/SwitchComponent.vue'
-import DatePickerComponent from '@/components/components/DatePickerComponent.vue'
-import ChartComponent from '@/components/components/ChartComponent.vue'
-import ContainerComponent from '@/components/components/ContainerComponent.vue'
-import GridComponent from '@/components/components/GridComponent.vue'
-import TableComponent from '@/components/components/TableComponent.vue'
+import type { EditorComponent } from '@/types'
+
+const TextComponent = defineAsyncComponent(() => import('@/components/components/TextComponent.vue'))
+const ImageComponent = defineAsyncComponent(() => import('@/components/components/ImageComponent.vue'))
+const ButtonComponent = defineAsyncComponent(() => import('@/components/components/ButtonComponent.vue'))
+const InputComponent = defineAsyncComponent(() => import('@/components/components/InputComponent.vue'))
+const TextareaComponent = defineAsyncComponent(() => import('@/components/components/TextareaComponent.vue'))
+const SelectComponent = defineAsyncComponent(() => import('@/components/components/SelectComponent.vue'))
+const CheckboxComponent = defineAsyncComponent(() => import('@/components/components/CheckboxComponent.vue'))
+const RadioComponent = defineAsyncComponent(() => import('@/components/components/RadioComponent.vue'))
+const SwitchComponent = defineAsyncComponent(() => import('@/components/components/SwitchComponent.vue'))
+const DatePickerComponent = defineAsyncComponent(() => import('@/components/components/DatePickerComponent.vue'))
+const ChartComponent = defineAsyncComponent(() => import('@/components/components/ChartComponent.vue'))
+const ContainerComponent = defineAsyncComponent(() => import('@/components/components/ContainerComponent.vue'))
+const GridComponent = defineAsyncComponent(() => import('@/components/components/GridComponent.vue'))
+const TableComponent = defineAsyncComponent(() => import('@/components/components/TableComponent.vue'))
+const LinkComponent = defineAsyncComponent(() => import('@/components/components/LinkComponent.vue'))
 
 const router = useRouter()
 const componentStore = useComponentStore()
@@ -39,7 +42,8 @@ const componentMap: Record<string, any> = {
   chart: ChartComponent,
   container: ContainerComponent,
   grid: GridComponent,
-  table: TableComponent
+  table: TableComponent,
+  link: LinkComponent
 }
 
 const sortedComponents = computed(() =>
@@ -92,14 +96,15 @@ function handleResize() {
   calculateScale()
 }
 
-function renderComponent(component: any) {
+function getComponentStyle(component: EditorComponent) {
   const isContainer = component.type === 'container' || component.type === 'grid'
+  const isInContainer = !!component.parentId
   const autoExpand = isContainer && component.props?.props?.autoExpand !== false
 
   return {
-    position: 'absolute' as const,
-    left: `${component.style.x}px`,
-    top: `${component.style.y}px`,
+    position: isInContainer ? 'relative' as const : 'absolute' as const,
+    left: isInContainer ? undefined : `${component.style.x}px`,
+    top: isInContainer ? undefined : `${component.style.y}px`,
     width: `${component.style.width}px`,
     height: autoExpand ? 'auto' : `${component.style.height}px`,
     minHeight: autoExpand ? `${component.style.height}px` : undefined,
@@ -112,6 +117,9 @@ function renderComponent(component: any) {
     backgroundColor: component.style.backgroundColor || 'transparent',
     boxShadow: component.style.boxShadow || 'none',
     zIndex: component.style.zIndex,
+    padding: component.style.padding ? `${component.style.padding}px` : undefined,
+    margin: component.style.margin ? `${component.style.margin}px` : undefined,
+    overflow: component.style.overflow || 'visible',
     display: component.visible !== false ? 'block' : 'none'
   }
 }
@@ -200,7 +208,7 @@ onUnmounted(() => {
           <template v-for="component in sortedComponents" :key="component.id">
             <div
               class="preview-component"
-              :style="renderComponent(component)"
+              :style="getComponentStyle(component)"
               @click="handleComponentEvent(component.id, 'click', $event)"
               @dblclick="handleComponentEvent(component.id, 'dblclick', $event)"
               @mouseenter="handleComponentEvent(component.id, 'mouseenter', $event)"
@@ -210,6 +218,7 @@ onUnmounted(() => {
                 :is="componentMap[component.type] || TextComponent"
                 :component="component"
                 mode="preview"
+                @click="component.type === 'button' ? handleComponentEvent(component.id, 'click', $event) : undefined"
                 @focus="handleComponentEvent(component.id, 'focus', $event)"
                 @blur="handleComponentEvent(component.id, 'blur', $event)"
                 @change="handleComponentEvent(component.id, 'change', $event)"

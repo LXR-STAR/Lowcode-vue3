@@ -95,7 +95,8 @@ export const useComponentStore = defineStore('component', () => {
       container: '弹性容器',
       grid: '栅格布局',
       chart: '图表组件',
-      table: '表格组件'
+      table: '表格组件',
+      link: '链接组件'
     }
 
     return {
@@ -194,7 +195,15 @@ export const useComponentStore = defineStore('component', () => {
         }
       },
       container: {
-        props: {}
+        props: {
+          direction: 'column',
+          justify: 'flex-start',
+          align: 'flex-start',
+          gap: 8,
+          padding: 16,
+          autoExpand: true,
+          showBorder: true
+        }
       },
       grid: {
         props: {
@@ -218,6 +227,17 @@ export const useComponentStore = defineStore('component', () => {
         stripe: true,
         border: true,
         size: 'default'
+      },
+      link: {
+        text: '链接文字',
+        linkStyle: {
+          href: '#',
+          target: '_blank',
+          color: '#409eff',
+          fontSize: 14,
+          fontWeight: 'normal',
+          underline: true
+        }
       }
     }
 
